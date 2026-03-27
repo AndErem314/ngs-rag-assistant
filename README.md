@@ -395,4 +395,8 @@ Models used (Ollama, llama3.1, nomic-embed) are subject to their respective lice
 - [Streamlit](https://streamlit.io/)
 - [ChromaDB](https://www.trychroma.com/)
 - [PDFPlumber](https://github.com/jsvine/pdfplumber)
-- Illumina — TruSight Oncology 500 manual used as example input
+- Illumina — TruSight Oncology 500.pdf manual used as example input
+- Illumina — TruSeq-DNA-PCR-Free.pdf manual used as example input
+- Illumina — Nextera-XT-DNA.pdf manual used as example input
+- Illumina — TruSeq-Nano-DNA.pdf manual used as example input
+- Illumina — TruSeq-Stranded-Total-RNA.pdf manual used as example input
