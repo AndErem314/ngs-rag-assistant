@@ -1,5 +1,5 @@
 import pdfplumber
-from typing import List, Tuple
+from typing import Union, IO, List, Tuple
 
 
 def table_to_markdown(table: List[List[str]]) -> str:
@@ -56,41 +56,32 @@ def extract_tables_from_page(page) -> List[str]:
     return markdown_tables
 
 
-def extract_pages(pdf_path: str) -> List[Tuple[int, str]]:
+def extract_pages(pdf_source: Union[str, IO]) -> List[Tuple[int, str]]:
     """
-    Extract text and tables from a PDF. Tables are converted to Markdown and appended
-    to the page's text (replacing the original table area conceptually).
+    Extract text and tables from a PDF.
 
     Args:
-        pdf_path: Path to the PDF file.
-
+        pdf_source: Either a file path (str) or a file-like object (e.g., BytesIO).
     Returns:
-        List of (page_number, processed_text) tuples.
-        Page numbers are 1-indexed.
-        If an error occurs, returns an empty list.
+        List of (page_number, processed_text).
     """
     result = []
     try:
-        with pdfplumber.open(pdf_path) as pdf:
+        with pdfplumber.open(pdf_source) as pdf:
             for i, page in enumerate(pdf.pages, start=1):
-                # Extract plain text
                 text = page.extract_text() or ""
-
-                # Extract tables as Markdown
                 tables_md = extract_tables_from_page(page)
-
-                # Combine text and tables (append tables after text)
                 if tables_md:
                     combined = text + "\n\n" + "\n\n".join(tables_md)
                 else:
                     combined = text
-
                 result.append((i, combined))
     except Exception as e:
-        print(f"Error processing PDF {pdf_path}: {e}")
+        print(f"Error processing PDF: {e}")
         return []
 
     return result
+
 
 # ----------------------------------------------------------------------
 # Example usage (commented out):
