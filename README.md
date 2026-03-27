@@ -357,15 +357,17 @@ Tests use `chromadb.EphemeralClient` (in-memory, no disk I/O) and mock `OllamaEm
 
 ---
 
-## 📜 Scripts
+## 📜 Bonus Script
 
 ### `scripts/generate_questions.py`
 
-Generates a JSON test-question set from one or more PDF manuals using **GPT-4o-mini** (requires `OPENAI_API_KEY` in `.env`). Useful for building an evaluation set to measure retrieval quality.
+Generates a JSON test-question set from one or more PDF manuals using **GPT-4o-mini** (requires `OPENAI_API_KEY` in `.env`) or **GEMINI** (requires `GEMINI_API_KEY` in `.env`). Useful for building an evaluation set to measure retrieval quality.
 
 ```bash
 python scripts/generate_questions.py data/manual.pdf
 python scripts/generate_questions.py data/manual1.pdf data/manual2.pdf
+
+python scripts/generate_questions.py --model gemini manual.pdf
 ```
 
 Output is saved to `data/questions/<stem>_questions.json` with fields `question`, `expected_answer`, `source_page`.
