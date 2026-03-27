@@ -54,7 +54,10 @@ ngs-rag-assistant/
 │   ├── test_ingestion.py       # VectorStore: IDs, upsert, re-ingestion, clear
 │   └── test_retrieval.py       # VectorStore.search + retrieve_context smoke tests
 ├── scripts/
-│   └── generate_questions.py   # GPT-4o-mini question generation from PDF manuals
+│   └── generate_questions.py   # GPT-4o-mini / Gemini question generation from PDF manuals
+├── validation/
+│   └── questions/              # pre-generated Q&A sets for retrieval evaluation
+│       └── TruSight-Oncology-500-v2_questions.json
 ├── data/                       # place your PDFs here (gitignored)
 └── notebooks/                  # experiment notebooks
 ```
@@ -127,6 +130,7 @@ Final Markdown report displayed + available for download
 ```
 
 The 7 predefined report questions are:
+
 1. What is the minimum DNA/RNA input amount?
 2. What are the recommended shearing settings for the Covaris instruments?
 3. List all reagents and their storage temperatures from the kit boxes.
@@ -146,7 +150,7 @@ The 7 predefined report questions are:
 | Storage   | 10 GB free | 20 GB free |
 | GPU       | CPU-only (slow) | Apple Metal / NVIDIA CUDA |
 
-Both models run locally via Ollama and use your GPU automatically (Metal on Apple Silicon, CUDA on NVIDIA).
+Both models run locally via Ollama. On Apple Silicon, Ollama automatically offloads computation to the GPU via Metal — no configuration needed. On NVIDIA machines, CUDA is used automatically if drivers are present.
 
 ---
 
@@ -203,9 +207,14 @@ cp .env.example .env
 Edit `.env` if needed (all values have sensible defaults):
 
 ```env
+# Ollama server (local by default)
 OLLAMA_HOST=http://localhost:11434
 EMBEDDING_MODEL=nomic-embed-text-v2-moe
 LLM_MODEL=llama3.1:8b
+
+# Only needed for the validation question-generation script (not the main app)
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
 ```
 
 If Ollama runs on a different machine or port, update `OLLAMA_HOST` here. The UI also has an Ollama host text field that overrides this at runtime.
@@ -343,6 +352,91 @@ Tests use `chromadb.EphemeralClient` (in-memory, no disk I/O) and mock `OllamaEm
 
 ---
 
+## 📜 Validation Script — `scripts/generate_questions.py`
+
+This script generates a structured JSON question-and-answer set directly from one or more PDF manuals, using either **GPT-4o-mini** (OpenAI) or **Gemini Flash** (Google). Its primary purpose is to produce an evaluation dataset you can use to measure and tune the retrieval quality of the RAG pipeline.
+
+> **Note:** This script calls an external API and requires either `OPENAI_API_KEY` or `GEMINI_API_KEY` in your `.env` file. It is only needed for evaluation — the main assistant runs fully locally without it.
+
+### What it does
+
+For each PDF you provide, the script:
+
+1. Extracts the full text from the PDF (up to 120,000 characters to stay within LLM context limits).
+2. Sends the text to the chosen LLM with a prompt asking it to generate 20–25 realistic questions a lab technician might ask.
+3. For each question, the LLM also provides an expected short answer and the approximate page number in the manual where the answer can be found.
+4. Saves the output as a JSON file in `validation/questions/`.
+
+### Output format
+
+Each JSON file is a list of objects with three fields:
+
+```json
+[
+  {
+    "question": "What is the minimum input amount for DNA and RNA samples in the TSO500v2 assay?",
+    "expected_answer": "30 ng DNA and 40 ng RNA.",
+    "source_page": 1
+  },
+  {
+    "question": "What DV200 value is recommended for RNA sample quality assessment?",
+    "expected_answer": "DV200 value of ≥20%.",
+    "source_page": 1
+  }
+]
+```
+
+- `question` — the natural language question to ask the RAG assistant
+- `expected_answer` — a short reference answer derived from the manual (used as ground truth for manual review)
+- `source_page` — the approximate page in the PDF where the answer can be verified
+
+A ready-made example for the TruSight Oncology 500 v2 manual is already included in the repository at `validation/questions/TruSight-Oncology-500-v2_questions.json`, so you can run a validation immediately without needing an API key.
+
+### Usage
+
+```bash
+# Generate questions from a single PDF using OpenAI (default)
+python scripts/generate_questions.py data/manual.pdf
+
+# Generate from multiple PDFs
+python scripts/generate_questions.py data/manual1.pdf data/manual2.pdf
+
+# Use Gemini instead of OpenAI
+python scripts/generate_questions.py --model gemini data/manual.pdf
+```
+
+Output files are saved to `validation/questions/<pdf_stem>_questions.json`.
+
+### How to use it for retrieval evaluation
+
+Once you have a question set, use it to systematically test whether the RAG pipeline retrieves the right chunks and generates accurate answers:
+
+1. **Ingest the PDF** into the app as usual (Steps 1–3 in the Usage Guide above).
+2. **Open the question set** (e.g., `TruSight-Oncology-500-v2_questions.json`).
+3. For each entry, **paste the `question`** into the app's Q&A field and click **🔍 Ask**.
+4. **Compare the answer** returned by the assistant against the `expected_answer` field. Also note which page(s) appear in the *Sources & relevance scores* expander — they should match or be close to `source_page`.
+5. If the answers are incomplete or the wrong pages are cited, **adjust the retrieval settings**:
+   - Increase **Top-K** to give the model more candidate chunks.
+   - Lower **Max distance** to filter out low-relevance noise.
+   - Or raise **Max distance** if relevant chunks are being discarded.
+6. Re-run the same questions after adjusting settings to confirm improvement.
+
+This process lets you dial in the `top_k` and `max_distance` values for a specific protocol rather than relying on the defaults.
+
+### Scoring tips
+
+There is no automated scoring built in — evaluation is currently manual. When reviewing answers, a simple rubric works well:
+
+| Rating | Meaning |
+|--------|---------|
+| ✅ Correct | Answer matches expected answer; cited page is within ±2 pages |
+| ⚠️ Partial | Answer is on the right track but incomplete or imprecise |
+| ❌ Wrong | Answer is factually incorrect, hallucinated, or not found |
+
+Track your results in a spreadsheet to compare performance across different `top_k` / `max_distance` combinations or after switching embedding/generation models.
+
+---
+
 ## 🔧 Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -354,25 +448,7 @@ Tests use `chromadb.EphemeralClient` (in-memory, no disk I/O) and mock `OllamaEm
 | Slow ingestion | Large PDF or CPU-only Ollama | Normal — embedding 500-chunk PDFs takes ~1–2 min on CPU |
 | Duplicate sources in sidebar | — | Fixed in current version via set-based deduplication on re-ingest |
 | `KeyError: selected_sources` | Session state not initialised | Fixed in current version; clear browser cache if persisting |
-
----
-
-## 📜 Bonus Script
-
-### `scripts/generate_questions.py`
-
-Generates a JSON test-question set from one or more PDF manuals using **GPT-4o-mini** (requires `OPENAI_API_KEY` in `.env`) or **GEMINI** (requires `GEMINI_API_KEY` in `.env`). Useful for building an evaluation set to measure retrieval quality.
-
-```bash
-python scripts/generate_questions.py data/manual.pdf
-python scripts/generate_questions.py data/manual1.pdf data/manual2.pdf
-
-python scripts/generate_questions.py --model gemini manual.pdf
-```
-
-Output is saved to `data/questions/<stem>_questions.json` with fields `question`, `expected_answer`, `source_page`.
-
-> **Note:** This script uses the OpenAI API and is only needed for evaluation. The main assistant runs fully locally without it.
+| `generate_questions.py` fails | Missing API key | Set `OPENAI_API_KEY` or `GEMINI_API_KEY` in `.env` |
 
 ---
 
