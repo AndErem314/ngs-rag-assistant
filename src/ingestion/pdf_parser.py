@@ -67,9 +67,11 @@ def extract_pages(pdf_source: Union[str, IO]) -> List[Tuple[int, str]]:
     """
     result = []
     try:
-        with pdfplumber.open(pdf_source) as pdf:
+        with (pdfplumber.open(pdf_source) as pdf):
             for i, page in enumerate(pdf.pages, start=1):
-                text = page.extract_text() or ""
+                text = page.extract_text()
+                if text is None:
+                    text = ""
                 tables_md = extract_tables_from_page(page)
                 if tables_md:
                     combined = text + "\n\n" + "\n\n".join(tables_md)

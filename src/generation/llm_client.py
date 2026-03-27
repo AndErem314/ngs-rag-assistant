@@ -21,7 +21,7 @@ class OllamaGenerator:
                   actually takes effect (unlike relying on the OLLAMA_HOST env var).
         """
         self.model = model
-        self.client = ollama.Client(host=host)
+        self.client = ollama.Client(base_url=host)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """

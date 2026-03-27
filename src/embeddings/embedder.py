@@ -24,7 +24,7 @@ class OllamaEmbedder:
             model: Name of the embedding model (assumed to be already pulled).
         """
         self.model = model
-        self.client = ollama.Client(host=host)
+        self.client = ollama.Client(base_url=host)
 
     def embed(self, text: str) -> List[float]:
         """
