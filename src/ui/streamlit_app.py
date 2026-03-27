@@ -1,5 +1,11 @@
 # src/ui/streamlit_app.py
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 import os
 import streamlit as st
 from dotenv import load_dotenv
@@ -23,7 +29,7 @@ DEFAULT_EMBED_MODEL  = os.getenv("EMBEDDING_MODEL",   "nomic-embed-text-v2-moe")
 DEFAULT_LLM_MODEL    = os.getenv("LLM_MODEL",         "llama3.1:8b")
 MAX_PDFS             = 5
 DEFAULT_TOP_K        = 5
-DEFAULT_MAX_DISTANCE = 1.0   # sensible starting point for cosine distance
+DEFAULT_MAX_DISTANCE = 1.0   # cosine distance: 0=identical, 2=opposite; good matches are 0.1-0.5
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +63,7 @@ def _build_clients(host: str) -> None:
         host=host, model=DEFAULT_LLM_MODEL
     )
     st.session_state.vector_store = VectorStore(
-        collection_name="ngs_docs", persist_directory="./chroma_db"
+        collection_name="ngs_docs", persist_directory=str(project_root / "chroma_db")
     )
 
 
