@@ -1,0 +1,127 @@
+[
+  {
+    "question": "What is the recommended input amount of gDNA for a 350 bp insert size?",
+    "expected_answer": "1 µg",
+    "source_page": 1
+  },
+  {
+    "question": "What is the recommended input amount of gDNA for a 550 bp insert size?",
+    "expected_answer": "2 µg",
+    "source_page": 1
+  },
+  {
+    "question": "What quantification method is recommended for input DNA?",
+    "expected_answer": "Fluorometric-based methods such as Qubit or PicoGreen",
+    "source_page": 1
+  },
+  {
+    "question": "What is the acceptable A260/A280 ratio for relatively pure DNA?",
+    "expected_answer": "Values from 1.8 through 2.0",
+    "source_page": 1
+  },
+  {
+    "question": "What Covaris settings should be used for a 350 bp insert size on an M220 instrument?",
+    "expected_answer": "Duty Cycle: 20%, Peak Power: 50 W, Cycles per Burst: 200, Duration: 65 seconds, Temperature: 20°C",
+    "source_page": 7
+  },
+  {
+    "question": "What Covaris settings should be used for a 550 bp insert size on an M220 instrument?",
+    "expected_answer": "Duty Cycle: 20%, Peak Power: 50 W, Cycles per Burst: 200, Duration: 45 seconds, Temperature: 20°C",
+    "source_page": 7
+  },
+  {
+    "question": "How long should the end repair incubation be at 30°C?",
+    "expected_answer": "30 minutes",
+    "source_page": 9
+  },
+  {
+    "question": "What is the incubation time for the A-tailing step at 37°C?",
+    "expected_answer": "30 minutes",
+    "source_page": 11
+  },
+  {
+    "question": "How long should the adapter ligation incubation be at 30°C?",
+    "expected_answer": "10 minutes",
+    "source_page": 13
+  },
+  {
+    "question": "What is the storage temperature for RSB (Resuspension Buffer)?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 6
+  },
+  {
+    "question": "What is the storage temperature for SPB (Sample Purification Beads)?",
+    "expected_answer": "2°C to 8°C",
+    "source_page": 6
+  },
+  {
+    "question": "What is the storage temperature for LIG2 (Ligation Mix 2)?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 13
+  },
+  {
+    "question": "How should SPB be handled before use?",
+    "expected_answer": "Let stand for 30 minutes to bring to room temperature, then vortex until well-dispersed",
+    "source_page": 6
+  },
+  {
+    "question": "What is the recommended shaker speed for the High Sample (HS) workflow?",
+    "expected_answer": "1800 rpm",
+    "source_page": 6
+  },
+  {
+    "question": "What type of plate seal should be used for thermal cycling steps?",
+    "expected_answer": "Microseal 'A' adhesive film",
+    "source_page": 4
+  },
+  {
+    "question": "What is the purpose of the A-tailing step?",
+    "expected_answer": "To add one adenine (A) nucleotide to the 3′ ends of blunt fragments to prevent self-ligation and provide a complementary overhang for adapter ligation",
+    "source_page": 11
+  },
+  {
+    "question": "What is the validated qPCR kit for quantifying TruSeq DNA PCR-Free libraries?",
+    "expected_answer": "KAPA Library Quantification Kit – Illumina/Universal",
+    "source_page": 15
+  },
+  {
+    "question": "What is the recommended dilution factor for qPCR quantification of libraries?",
+    "expected_answer": "At least two independent 1:10,000 and 1:20,000 dilutions",
+    "source_page": 15
+  },
+  {
+    "question": "What instrument is recommended for checking library fragment size distribution?",
+    "expected_answer": "Advanced Analytical Fragment Analyzer with HS-NGS High Sensitivity 474 kit or Agilent 2100 Bioanalyzer using a High Sensitivity DNA kit",
+    "source_page": 16
+  },
+  {
+    "question": "To what concentration should libraries be normalized for clustering?",
+    "expected_answer": "4 nM",
+    "source_page": 18
+  },
+  {
+    "question": "What is the recommended buffer for diluting libraries during normalization?",
+    "expected_answer": "Tris-HCl 10 mM, pH 8.5 with 0.1% Tween 20",
+    "source_page": 18
+  },
+  {
+    "question": "How long can libraries be stored at -25°C to -15°C after the ligation cleanup step?",
+    "expected_answer": "Up to 7 days",
+    "source_page": 15
+  },
+  {
+    "question": "What is the purpose of the inline control DNA?",
+    "expected_answer": "To report the success or failure of specific enzymatic activities in a custom analysis pipeline (optional)",
+    "source_page": 22
+  },
+  {
+    "question": "What should be used as a substitute if inline controls are omitted?",
+    "expected_answer": "Equal volume of RSB",
+    "source_page": 22
+  },
+  {
+    "question": "What is the catalog number for the TruSeq DNA PCR-Free Library Prep (96 Samples)?",
+    "expected_answer": "20015963",
+    "source_page": 21
+  }
+]

@@ -1,0 +1,132 @@
+[
+  {
+    "question": "What is the recommended DNA input amount for a 350 bp insert size?",
+    "expected_answer": "100 ng input gDNA",
+    "source_page": 5
+  },
+  {
+    "question": "What is the recommended DNA input amount for a 550 bp insert size?",
+    "expected_answer": "200 ng input gDNA",
+    "source_page": 5
+  },
+  {
+    "question": "What method should be used to quantify input DNA?",
+    "expected_answer": "Use fluorometric-based methods such as Qubit or PicoGreen",
+    "source_page": 5
+  },
+  {
+    "question": "What method should NOT be used to quantify input DNA?",
+    "expected_answer": "Do not use spectrophotometric-based methods such as NanoDrop",
+    "source_page": 5
+  },
+  {
+    "question": "What is the recommended positive control DNA for this protocol?",
+    "expected_answer": "Coriell Human-1 DNA (NA18507) or Promega Human Genomic DNA (G3041)",
+    "source_page": 5
+  },
+  {
+    "question": "What Covaris settings should be used for a 350 bp insert size on an M220 instrument?",
+    "expected_answer": "Duty Factor: 20%, Peak Power: 50 W, Cycles per Burst: 200, Duration: 65 seconds, Temperature: 20°C",
+    "source_page": 12
+  },
+  {
+    "question": "What Covaris settings should be used for a 550 bp insert size on an M220 instrument?",
+    "expected_answer": "Duty Factor: 20%, Peak Power: 50 W, Cycles per Burst: 200, Duration: 45 seconds, Temperature: 20°C",
+    "source_page": 12
+  },
+  {
+    "question": "How long should the End Repair incubation be and at what temperature?",
+    "expected_answer": "30 minutes at 30°C",
+    "source_page": 15
+  },
+  {
+    "question": "What is the incubation time and temperature for the A-tailing step?",
+    "expected_answer": "37°C for 30 minutes, then 70°C for 5 minutes",
+    "source_page": 17
+  },
+  {
+    "question": "How long should the adapter ligation incubation be and at what temperature?",
+    "expected_answer": "10 minutes at 30°C",
+    "source_page": 19
+  },
+  {
+    "question": "How many PCR cycles are used in the enrichment step?",
+    "expected_answer": "8 cycles",
+    "source_page": 22
+  },
+  {
+    "question": "What is the PCR program for library enrichment?",
+    "expected_answer": "95°C for 3 minutes; 8 cycles of: 98°C for 20 seconds, 60°C for 15 seconds, 72°C for 30 seconds; 72°C for 5 minutes; hold at 4°C",
+    "source_page": 22
+  },
+  {
+    "question": "What is the storage temperature for RSB (Resuspension Buffer)?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 11
+  },
+  {
+    "question": "What is the storage temperature for SPB (Sample Purification Beads)?",
+    "expected_answer": "2°C to 8°C",
+    "source_page": 11
+  },
+  {
+    "question": "What is the storage temperature for DNA adapters?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 18
+  },
+  {
+    "question": "How many freeze-thaw cycles can the DNA Adapter Plate (DAP) undergo?",
+    "expected_answer": "Up to 4 freeze-thaw cycles",
+    "source_page": 18
+  },
+  {
+    "question": "What should be done with SPB before each use?",
+    "expected_answer": "Vortex SPB before each use and frequently to ensure beads are evenly distributed",
+    "source_page": 11
+  },
+  {
+    "question": "What is the recommended shaker speed for the HS workflow?",
+    "expected_answer": "1800 rpm",
+    "source_page": 11
+  },
+  {
+    "question": "How long should the bead binding incubation be during clean-up steps?",
+    "expected_answer": "5 minutes at room temperature",
+    "source_page": 13
+  },
+  {
+    "question": "How many ethanol washes are performed during bead clean-up steps?",
+    "expected_answer": "2 washes with 200 µl freshly prepared 80% ethanol",
+    "source_page": 13
+  },
+  {
+    "question": "How long should beads air-dry on the magnetic stand?",
+    "expected_answer": "5 minutes",
+    "source_page": 13
+  },
+  {
+    "question": "What average fragment length should be used to calculate library concentration for 350 bp libraries?",
+    "expected_answer": "470 bp",
+    "source_page": 24
+  },
+  {
+    "question": "What average fragment length should be used to calculate library concentration for 550 bp libraries?",
+    "expected_answer": "670 bp",
+    "source_page": 24
+  },
+  {
+    "question": "What dilution is recommended for library quality check using a High Sensitivity DNA chip on the Bioanalyzer?",
+    "expected_answer": "Dilute 1:100 with water",
+    "source_page": 24
+  },
+  {
+    "question": "To what concentration should libraries be normalized for pooling?",
+    "expected_answer": "10 nM",
+    "source_page": 25
+  },
+  {
+    "question": "What is the maximum storage time at -25°C to -15°C at safe stopping points?",
+    "expected_answer": "Up to 7 days",
+    "source_page": 16
+  }
+]

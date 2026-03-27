@@ -1,0 +1,127 @@
+[
+  {
+    "question": "What is the recommended total RNA input range for this protocol?",
+    "expected_answer": "0.1–1 µg of total RNA",
+    "source_page": 5
+  },
+  {
+    "question": "How much previously rRNA-depleted total RNA can be used as starting material?",
+    "expected_answer": "10–100 ng in a final volume of 8.5 µl of nuclease-free water or ELB",
+    "source_page": 6
+  },
+  {
+    "question": "What is the incubation time and temperature for the RNA fragmentation step?",
+    "expected_answer": "94°C for 8 minutes (standard protocol)",
+    "source_page": 12
+  },
+  {
+    "question": "How long should you incubate the RNA with RNAClean XP beads during the cleanup step?",
+    "expected_answer": "15 minutes at room temperature",
+    "source_page": 13
+  },
+  {
+    "question": "What are the thermal cycler conditions for first strand cDNA synthesis?",
+    "expected_answer": "25°C for 10 minutes, 42°C for 15 minutes, 70°C for 15 minutes, hold at 4°C",
+    "source_page": 14
+  },
+  {
+    "question": "How long is the second strand cDNA synthesis incubation?",
+    "expected_answer": "1 hour at 16°C",
+    "source_page": 16
+  },
+  {
+    "question": "What are the incubation conditions for the A-tailing reaction?",
+    "expected_answer": "37°C for 30 minutes, then 70°C for 5 minutes",
+    "source_page": 17
+  },
+  {
+    "question": "How long should you incubate the adapter ligation reaction?",
+    "expected_answer": "10 minutes at 30°C",
+    "source_page": 19
+  },
+  {
+    "question": "How many PCR cycles are recommended for library enrichment?",
+    "expected_answer": "15 cycles",
+    "source_page": 22
+  },
+  {
+    "question": "What is the storage temperature for the FSA (First Strand Synthesis ActD mix) reagent?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 14
+  },
+  {
+    "question": "How should AMPure XP beads be stored?",
+    "expected_answer": "2°C to 8°C",
+    "source_page": 15
+  },
+  {
+    "question": "What is the storage condition for the LIG (Ligation Mix) reagent?",
+    "expected_answer": "-25°C to -15°C",
+    "source_page": 19
+  },
+  {
+    "question": "How should RRB (rRNA Removal Beads) be stored?",
+    "expected_answer": "2°C to 8°C",
+    "source_page": 11
+  },
+  {
+    "question": "What is the recommended shaking speed for mixing during the HS workflow?",
+    "expected_answer": "Calibrate microplate shaker to 1000 rpm",
+    "source_page": 12
+  },
+  {
+    "question": "What centrifugation speed is used for most steps in the protocol?",
+    "expected_answer": "280 × g for 1 minute",
+    "source_page": 12
+  },
+  {
+    "question": "What is the first step after diluting total RNA in the BRP plate?",
+    "expected_answer": "Add 5 µl RBB (rRNA Binding Buffer) to each well",
+    "source_page": 12
+  },
+  {
+    "question": "How much SuperScript II should be added to the FSA mixture?",
+    "expected_answer": "Add 50 µl SuperScript II to one tube of FSA (or 1 µl SuperScript II to 9 µl FSA)",
+    "source_page": 14
+  },
+  {
+    "question": "What volume of AMPure XP beads should be added for cDNA purification in the LS workflow?",
+    "expected_answer": "90 µl",
+    "source_page": 16
+  },
+  {
+    "question": "How much RSB should be added to resuspend beads after the A-tailing cleanup?",
+    "expected_answer": "17.5 µl",
+    "source_page": 16
+  },
+  {
+    "question": "What is the final expected size of the library product?",
+    "expected_answer": "Approximately 260 bp",
+    "source_page": 24
+  },
+  {
+    "question": "What should you do if starting with degraded RNA?",
+    "expected_answer": "Adjust the fragmentation time to avoid overfragmentation",
+    "source_page": 5
+  },
+  {
+    "question": "What is the purpose of adding Actinomycin D to the first strand synthesis mix?",
+    "expected_answer": "Prevents spurious DNA-dependent synthesis while allowing RNA-dependent synthesis, improving strand specificity",
+    "source_page": 14
+  },
+  {
+    "question": "How long can you store plates at safe stopping points?",
+    "expected_answer": "Up to 7 days at -25°C to -15°C",
+    "source_page": 17
+  },
+  {
+    "question": "What concentration should libraries be normalized to before pooling?",
+    "expected_answer": "10 nM",
+    "source_page": 24
+  },
+  {
+    "question": "What is the recommended method for quantifying RNA input?",
+    "expected_answer": "Fluorimetric method",
+    "source_page": 5
+  }
+]

@@ -1,0 +1,127 @@
+[
+  {
+    "question": "What is the minimum input amount for DNA and RNA samples in the TSO500v2 assay?",
+    "expected_answer": "30 ng DNA and 40 ng RNA.",
+    "source_page": 1
+  },
+  {
+    "question": "What fluorometric quantification methods are recommended for DNA and RNA input quantification?",
+    "expected_answer": "AccuClear for DNA and QuantiFluor for RNA.",
+    "source_page": 1
+  },
+  {
+    "question": "What DV200 value is recommended for RNA sample quality assessment?",
+    "expected_answer": "DV200 value of ≥20%.",
+    "source_page": 1
+  },
+  {
+    "question": "What ΔCq value is acceptable for DNA sample quality using the TruSight FFPE QC Kit?",
+    "expected_answer": "ΔCq value ≤5.",
+    "source_page": 1
+  },
+  {
+    "question": "What is the target fragment size range for gDNA shearing?",
+    "expected_answer": "90–250 bp.",
+    "source_page": 2
+  },
+  {
+    "question": "What Covaris models are optimized for the TSO500v2 assay?",
+    "expected_answer": "Covaris E220 evolution, LE220-plus, M220, ME220, ML230, or R230.",
+    "source_page": 2
+  },
+  {
+    "question": "What are the Covaris M220 settings for DNA shearing?",
+    "expected_answer": "Water bath temperature 20°C, PIP 50 watts, Duty Factor 20%, Cycles per Burst 1000, Shearing Time 200 seconds.",
+    "source_page": 26
+  },
+  {
+    "question": "How long should the Covaris instrument be degassed before use?",
+    "expected_answer": "Approximately 1 hour based on model type.",
+    "source_page": 25
+  },
+  {
+    "question": "What is the incubation time and temperature for the End Repair step?",
+    "expected_answer": "30°C for 30 minutes.",
+    "source_page": 28
+  },
+  {
+    "question": "What is the incubation time and temperature for the A-Tailing step?",
+    "expected_answer": "37°C for 20 minutes.",
+    "source_page": 28
+  },
+  {
+    "question": "How long should the adapter ligation reaction incubate at room temperature?",
+    "expected_answer": "30 minutes.",
+    "source_page": 29
+  },
+  {
+    "question": "What is the thermal cycler program for Index PCR?",
+    "expected_answer": "98°C for 30 seconds, then 15 cycles of 98°C for 10 seconds, 60°C for 30 seconds, 72°C for 30 seconds, followed by 72°C for 5 minutes, hold at 10°C.",
+    "source_page": 33
+  },
+  {
+    "question": "How many cycles are used in the Enriched Library Amplification (EL-PCR) step?",
+    "expected_answer": "18 cycles.",
+    "source_page": 41
+  },
+  {
+    "question": "What is the storage temperature for the TSO500v2 Library Prep -20C reagents?",
+    "expected_answer": "-25°C to -15°C.",
+    "source_page": 4
+  },
+  {
+    "question": "How should Illumina Purification Beads (IPB) be stored?",
+    "expected_answer": "At room temperature if stored at 2°C to 8°C.",
+    "source_page": 18
+  },
+  {
+    "question": "How long should EEW (Enhanced Enrichment Wash) be thawed at room temperature before use?",
+    "expected_answer": "At least 90 minutes.",
+    "source_page": 34
+  },
+  {
+    "question": "What is the recommended method to avoid cross-contamination during library prep?",
+    "expected_answer": "Change tips between each well when adding or transferring samples, adding reagents, or adding indexing primers.",
+    "source_page": 16
+  },
+  {
+    "question": "How should plates be sealed before shaking or incubation steps?",
+    "expected_answer": "Always seal the plate, making sure edges and wells are sealed, using an adhesive cover with a sealing wedge or roller.",
+    "source_page": 16
+  },
+  {
+    "question": "What is the definition of 'vortex briefly' in the protocol?",
+    "expected_answer": "Vortex three times for 3 seconds on the maximum setting.",
+    "source_page": 17
+  },
+  {
+    "question": "How should beads be resuspended before use?",
+    "expected_answer": "Allow beads to come to room temperature and vortex thoroughly to resuspend.",
+    "source_page": 17
+  },
+  {
+    "question": "What is the incubation time for the bead-based normalization bind step?",
+    "expected_answer": "Shake at 1800 rpm for 10 minutes.",
+    "source_page": 47
+  },
+  {
+    "question": "How long can indexed libraries (ALS plate) be stored at -25°C to -15°C?",
+    "expected_answer": "Up to 30 days.",
+    "source_page": 33
+  },
+  {
+    "question": "How long can purified cDNA (PCF plate) be stored at -25°C to -15°C?",
+    "expected_answer": "Up to 7 days.",
+    "source_page": 24
+  },
+  {
+    "question": "What is the purpose of the Transfer Wash step in the capture hybridization procedure?",
+    "expected_answer": "To minimize carryover of residual reagents that can inhibit downstream PCR.",
+    "source_page": 41
+  },
+  {
+    "question": "Which probe pools are used for DNA libraries with HRD (Homologous Recombination Deficiency) detection?",
+    "expected_answer": "OPD2 and OPD3.",
+    "source_page": 36
+  }
+]

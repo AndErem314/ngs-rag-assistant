@@ -1,0 +1,127 @@
+[
+  {
+    "question": "What is the recommended input DNA amount for the Nextera XT protocol?",
+    "expected_answer": "1 ng of input DNA.",
+    "source_page": 2
+  },
+  {
+    "question": "What method should be used to quantify input DNA?",
+    "expected_answer": "Use a fluorometric-based method, such as the Qubit dsDNA BR Assay system.",
+    "source_page": 2
+  },
+  {
+    "question": "What are the acceptable 260/280 absorbance ratio values for DNA purity?",
+    "expected_answer": "1.8–2.0.",
+    "source_page": 3
+  },
+  {
+    "question": "What is the minimum PCR amplicon size recommended for Nextera XT?",
+    "expected_answer": ">300 bp.",
+    "source_page": 3
+  },
+  {
+    "question": "What bead-to-supernatant ratio is recommended for amplicons <500 bp during library cleanup?",
+    "expected_answer": "1.8x Illumina Purification Beads volume normal ratio to supernatant.",
+    "source_page": 3
+  },
+  {
+    "question": "At what temperature should the Amplicon Tagment Mix (ATM) be stored?",
+    "expected_answer": "-25°C to -15°C.",
+    "source_page": 4
+  },
+  {
+    "question": "What is the storage temperature for Library Normalization Wash 1 (LNW1)?",
+    "expected_answer": "2°C to 8°C.",
+    "source_page": 5
+  },
+  {
+    "question": "What type of seal should be used for thermal cycling steps?",
+    "expected_answer": "Microseal 'A' adhesive film.",
+    "source_page": 10
+  },
+  {
+    "question": "How should Illumina Purification Beads (IPB) be resuspended before use?",
+    "expected_answer": "Manually mix by inversion for at least 2 minutes, rotating the bottle 90 degrees every 30 seconds.",
+    "source_page": 10
+  },
+  {
+    "question": "What is the incubation temperature and time for the tagmentation step?",
+    "expected_answer": "55°C for 5 minutes.",
+    "source_page": 12
+  },
+  {
+    "question": "What volume of Neutralize Tagment Buffer (NT) is added after tagmentation?",
+    "expected_answer": "5 µl.",
+    "source_page": 12
+  },
+  {
+    "question": "How many PCR cycles are used in the amplification step?",
+    "expected_answer": "12 cycles.",
+    "source_page": 13
+  },
+  {
+    "question": "What is the annealing temperature during the PCR amplification step?",
+    "expected_answer": "55°C for 30 seconds.",
+    "source_page": 13
+  },
+  {
+    "question": "If using index adapter tubes, what volume of i7 adapter is added per sample?",
+    "expected_answer": "5 µl.",
+    "source_page": 14
+  },
+  {
+    "question": "What is the recommended volume of Illumina Purification Beads (IPB) to add for standard DNA input during cleanup?",
+    "expected_answer": "30 µl.",
+    "source_page": 15
+  },
+  {
+    "question": "How long should the bead-sample mixture be shaken during library cleanup?",
+    "expected_answer": "2 minutes at 1800 rpm.",
+    "source_page": 15
+  },
+  {
+    "question": "How many times should the beads be washed with 80% ethanol during cleanup?",
+    "expected_answer": "Two times.",
+    "source_page": 15
+  },
+  {
+    "question": "What volume of Resuspension Buffer (RSB) is added to the beads after ethanol washes?",
+    "expected_answer": "52.5 µl.",
+    "source_page": 15
+  },
+  {
+    "question": "What is the expected library size range after tagmentation?",
+    "expected_answer": "Between 400 bp and 1.2 kb.",
+    "source_page": 17
+  },
+  {
+    "question": "When should manual normalization (Dilute Libraries to the Starting Concentration) be used instead of the Normalize Libraries protocol?",
+    "expected_answer": "If using IDT for Illumina Nextera UD Indexes, if the final library yield is <10 nM, or if your sequencing system uses onboard denaturation.",
+    "source_page": 17
+  },
+  {
+    "question": "What concentration of NaOH is required for the normalization step?",
+    "expected_answer": "0.1 N NaOH (fewer than 7 days old).",
+    "source_page": 18
+  },
+  {
+    "question": "How long should the LN master mix be shaken with the samples during normalization?",
+    "expected_answer": "30 minutes at 1800 rpm.",
+    "source_page": 19
+  },
+  {
+    "question": "What is the average library size to use for molarity calculation if a trace instrument is not available?",
+    "expected_answer": "600 bp.",
+    "source_page": 20
+  },
+  {
+    "question": "What type of index codes do IDT for Illumina DNA/RNA UD Indexes use, and how do they differ from Nextera XT v2 indexes?",
+    "expected_answer": "10 base pair index codes, whereas Nextera XT and Nextera XT v2 indexes use eight base pair index codes.",
+    "source_page": 11
+  },
+  {
+    "question": "What safety precautions are recommended when handling Library Normalization Additives 1 (LNA1)?",
+    "expected_answer": "Prepare under a fume hood, wear protective equipment including eye protection, gloves, and laboratory coat, and handle used reagents as chemical waste.",
+    "source_page": 18
+  }
+]
