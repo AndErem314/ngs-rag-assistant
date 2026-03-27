@@ -5,6 +5,9 @@ Generate a set of test questions from a PDF manual for validation/demonstration.
 Usage:
     python scripts/generate_questions.py path/to/manual.pdf
     python scripts/generate_questions.py path/to/manual1.pdf path/to/manual2.pdf
+
+Output:
+    JSON files will be saved in validation/questions/<filename>_questions.json
 """
 
 import argparse
@@ -19,6 +22,10 @@ from openai import OpenAI
 
 # Load environment variables from .env file (should contain OPENAI_API_KEY)
 load_dotenv()
+
+# GPT-4o-mini has a 128k token context window. 120k chars is a safe character
+# limit that stays well within that budget after tokenisation overhead.
+PDF_TEXT_CHAR_LIMIT = 120_000
 
 
 def extract_full_text(pdf_path: str) -> tuple[str, int]:
@@ -50,6 +57,10 @@ def generate_questions(pdf_text: str, total_pages: int) -> list[dict]:
 
     client = OpenAI(api_key=api_key)
 
+    # Truncate here, outside the f-string, so the comment stays in Python
+    # and does not get injected into the prompt sent to the model.
+    truncated_text = pdf_text[:PDF_TEXT_CHAR_LIMIT]
+
     prompt = f"""
 You are an expert in NGS protocols. Read the following user manual and generate a list of 20-25 realistic questions that a lab technician might ask. Include questions about:
 - Input amounts (DNA/RNA)
@@ -68,7 +79,7 @@ For each question, provide:
 Output the result as a JSON list of objects, each with keys: "question", "expected_answer", "source_page".
 
 Manual text:
-{pdf_text[:120000]}  # Truncate to fit within token limits (gpt-4o-mini has 128k tokens, so safe)
+{truncated_text}
 """
 
     try:
@@ -100,7 +111,7 @@ def main():
     args = parser.parse_args()
 
     # Create output directory if it doesn't exist
-    output_dir = Path("data/questions")
+    output_dir = Path("validation/questions")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for pdf_path in args.pdf_paths:
