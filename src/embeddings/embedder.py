@@ -10,11 +10,11 @@ class OllamaEmbedder:
     to convert text into vector embeddings.
 
     Attributes:
-        model (str): Name of the embedding model (default "nomic-embed-text-v2-moe").
+        model (str): Name of the embedding model (default "haybu/mxbai-embed-large:latest").
         client (ollama.Client): Ollama client bound to the specified host.
     """
 
-    def __init__(self, host: str = "http://localhost:11434", model: str = "nomic-embed-text-v2-moe"):
+    def __init__(self, host: str = "http://localhost:11434", model: str = "haybu/mxbai-embed-large:latest"):
         """
         Initialize the embedder.
 

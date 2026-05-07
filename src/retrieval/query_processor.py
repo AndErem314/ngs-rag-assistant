@@ -3,6 +3,7 @@
 from typing import List, Dict, Optional, Tuple
 from src.embeddings.embedder import OllamaEmbedder
 from src.retrieval.vector_store import VectorStore
+from src.retrieval.pgvector_store import PgvectorStore
 
 
 def retrieve_context(
@@ -23,7 +24,7 @@ def retrieve_context(
     Args:
         question:      The user's question.
         embedder:      OllamaEmbedder instance to generate the query embedding.
-        vector_store:  VectorStore instance to perform similarity search.
+        vector_store:  VectorStore (ChromaDB, primary) or PgvectorStore (pgvector, secondary) instance to perform similarity search.
         source_filter: Optional list of source filenames to restrict the search.
         top_k:         Maximum number of chunks to retrieve before filtering.
         max_distance:  Upper bound on ChromaDB distance (lower = more similar).
