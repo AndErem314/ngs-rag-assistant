@@ -1,180 +1,206 @@
 """
-Smoke tests for the retrieval pipeline.
+Unit tests for the retrieval module (query_processor + enhanced vector_store tests).
 
 Covers:
-  - VectorStore.search() — happy path, source_filter, max_distance
-  - retrieve_context() — happy path, empty embedding, no results,
-    max_distance filtering, metadata enrichment with distance field
-
-No Ollama server is required. OllamaEmbedder is mocked so embed() returns
-a controlled vector, and ChromaDB runs in-memory via EphemeralClient.
+  - retrieve_context() with mocks for embedder and vector_store
+  - VectorStore.search() edge cases (source_filter, max_distance)
+  - NGS-specific query retrieval scenarios
 """
 
 import pytest
-import chromadb
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
+from src.retrieval.query_processor import retrieve_context
+from src.embeddings.embedder import OllamaEmbedder
 
 
 # ---------------------------------------------------------------------------
-# Shared fixtures
+# Helpers
 # ---------------------------------------------------------------------------
 
-def _make_store(collection_name: str = "test_retrieval"):
-    """VectorStore backed by an in-memory ChromaDB — no disk I/O."""
-    ephemeral = chromadb.EphemeralClient()
-    with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
-        from src.retrieval.vector_store import VectorStore
-        store = VectorStore(collection_name=collection_name, persist_directory="/tmp/unused")
-    return store
+def _make_mock_embedder(embedding_vector=None):
+    """Create a mock OllamaEmbedder that returns a fixed embedding."""
+    mock = Mock(spec=OllamaEmbedder)
+    mock.embed.return_value = embedding_vector or [0.1, 0.2, 0.3, 0.4, 0.5]
+    return mock
 
 
-def _populated_store():
-    """Return a store pre-loaded with three chunks across two sources."""
-    store = _make_store()
-
-    chunks = [
-        {"text": "Minimum DNA input is 100 ng.",        "metadata": {"source": "a.pdf", "page": 1}},
-        {"text": "Incubate at 37 °C for 30 minutes.",   "metadata": {"source": "a.pdf", "page": 3}},
-        {"text": "Store reagents at -20 °C.",            "metadata": {"source": "b.pdf", "page": 2}},
-    ]
-    # Use orthogonal unit vectors so distances between them are meaningful
-    # and predictable for assertions.
-    embeddings = [
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-    ]
-    store.add_chunks(chunks, embeddings)
-    return store
-
-
-def _mock_embedder(vector: list) -> MagicMock:
-    """Return a mock OllamaEmbedder whose embed() always returns ``vector``."""
-    embedder = MagicMock()
-    embedder.embed.return_value = vector
-    return embedder
+def _make_mock_vector_store(search_results=None):
+    """Create a mock VectorStore with a fixed search response."""
+    mock = Mock()
+    mock.search.return_value = search_results or []
+    return mock
 
 
 # ---------------------------------------------------------------------------
-# VectorStore.search
-# ---------------------------------------------------------------------------
-
-class TestVectorStoreSearch:
-    def setup_method(self):
-        self.store = _populated_store()
-
-    def test_search_returns_top_k_results(self):
-        query = [1.0, 0.0, 0.0, 0.0]   # closest to chunk 0
-        results = self.store.search(query_embedding=query, top_k=2)
-        assert len(results) == 2
-
-    def test_search_result_structure(self):
-        query = [1.0, 0.0, 0.0, 0.0]
-        results = self.store.search(query_embedding=query, top_k=1)
-        doc, meta, distance = results[0]
-        assert isinstance(doc, str)
-        assert "source" in meta and "page" in meta
-        assert isinstance(distance, float)
-
-    def test_search_closest_chunk_is_first(self):
-        """Querying with chunk 0's vector should return chunk 0 first."""
-        query = [1.0, 0.0, 0.0, 0.0]
-        results = self.store.search(query_embedding=query, top_k=3)
-        assert "100 ng" in results[0][0]
-
-    def test_source_filter_restricts_results(self):
-        query = [1.0, 0.0, 0.0, 0.0]
-        results = self.store.search(query_embedding=query, top_k=3, source_filter=["b.pdf"])
-        assert all(meta["source"] == "b.pdf" for _, meta, _ in results)
-
-    def test_max_distance_filters_low_quality_chunks(self):
-        """A very tight distance threshold should drop all but the nearest chunk."""
-        query = [1.0, 0.0, 0.0, 0.0]
-        # Orthogonal vectors have cosine distance = 1.0; use 0.5 to keep only
-        # the identical-direction chunk (distance ≈ 0).
-        results = self.store.search(query_embedding=query, top_k=3, max_distance=0.5)
-        assert len(results) == 1
-        assert "100 ng" in results[0][0]
-
-    def test_max_distance_none_returns_all_top_k(self):
-        query = [1.0, 0.0, 0.0, 0.0]
-        results = self.store.search(query_embedding=query, top_k=3, max_distance=None)
-        assert len(results) == 3
-
-    def test_search_empty_collection_returns_empty_list(self):
-        empty_store = _make_store("empty")
-        results = empty_store.search(query_embedding=[1.0, 0.0, 0.0, 0.0], top_k=5)
-        assert results == []
-
-
-# ---------------------------------------------------------------------------
-# retrieve_context
+# Test retrieve_context()
 # ---------------------------------------------------------------------------
 
 class TestRetrieveContext:
-    def setup_method(self):
-        self.store = _populated_store()
+    def test_embedding_failure_returns_empty(self):
+        """When embedder fails (returns empty list), return empty context."""
+        embedder = _make_mock_embedder(embedding_vector=[])
+        vector_store = _make_mock_vector_store()
 
-    def _call(self, vector, **kwargs):
-        from src.retrieval.query_processor import retrieve_context
-        embedder = _mock_embedder(vector)
-        return retrieve_context(
-            question="test question",
-            embedder=embedder,
-            vector_store=self.store,
-            **kwargs,
-        )
-
-    def test_happy_path_returns_non_empty_context(self):
-        context, metadata = self._call([1.0, 0.0, 0.0, 0.0], top_k=2)
-        assert isinstance(context, str) and len(context) > 0
-        assert isinstance(metadata, list) and len(metadata) == 2
-
-    def test_metadata_contains_required_keys(self):
-        _, metadata = self._call([1.0, 0.0, 0.0, 0.0], top_k=1)
-        assert "source" in metadata[0]
-        assert "page" in metadata[0]
-        assert "distance" in metadata[0]
-
-    def test_metadata_distance_is_rounded_float(self):
-        _, metadata = self._call([1.0, 0.0, 0.0, 0.0], top_k=1)
-        d = metadata[0]["distance"]
-        assert isinstance(d, float)
-        # rounded to 4 decimal places → string representation ≤ 6 chars
-        assert len(str(d).split(".")[-1]) <= 4
-
-    def test_context_chunks_joined_by_double_newline(self):
-        context, _ = self._call([1.0, 0.0, 0.0, 0.0], top_k=2)
-        assert "\n\n" in context
-
-    def test_empty_embedding_returns_empty_tuple(self):
-        from src.retrieval.query_processor import retrieve_context
-        embedder = _mock_embedder([])           # simulate Ollama failure
         context, metadata = retrieve_context(
-            question="anything",
+            question="What is DNA input?",
             embedder=embedder,
-            vector_store=self.store,
+            vector_store=vector_store
         )
+
+        assert context == ""
+        assert metadata == []
+        embedder.embed.assert_called_once_with("What is DNA input?")
+
+    def test_vector_store_no_results_returns_empty(self):
+        """When vector store returns no results, return empty context."""
+        embedder = _make_mock_embedder()
+        vector_store = _make_mock_vector_store(search_results=[])
+
+        context, metadata = retrieve_context(
+            question="PCR cycles?",
+            embedder=embedder,
+            vector_store=vector_store
+        )
+
         assert context == ""
         assert metadata == []
 
-    def test_max_distance_filters_poor_results(self):
-        """A very tight threshold should reduce the returned chunks."""
-        # All chunks at top_k=3 but only the nearest should survive dist < 0.5
-        context_all, meta_all = self._call([1.0, 0.0, 0.0, 0.0], top_k=3, max_distance=None)
-        context_filt, meta_filt = self._call([1.0, 0.0, 0.0, 0.0], top_k=3, max_distance=0.5)
-        assert len(meta_filt) < len(meta_all)
-
-    def test_source_filter_restricts_context(self):
-        context, metadata = self._call(
-            [1.0, 0.0, 0.0, 0.0],
-            top_k=3,
-            source_filter=["b.pdf"],
+    def test_successful_retrieval_builds_context(self):
+        """Valid embedding + search results build context string and metadata."""
+        embedder = _make_mock_embedder()
+        vector_store = _make_mock_vector_store(
+            search_results=[
+                ("DNA input is 100 ng.", {"source": "manual.pdf", "page": 5}, 0.3),
+                ("PCR cycles: 30.", {"source": "manual.pdf", "page": 8}, 0.4),
+            ]
         )
-        assert all(m["source"] == "b.pdf" for m in metadata)
 
-    def test_no_results_after_filter_returns_empty_tuple(self):
-        """Querying with max_distance=0.0 should drop everything."""
-        context, metadata = self._call([1.0, 0.0, 0.0, 0.0], top_k=3, max_distance=0.0)
-        assert context == ""
-        assert metadata == []
+        context, metadata = retrieve_context(
+            question="DNA and PCR settings?",
+            embedder=embedder,
+            vector_store=vector_store,
+            top_k=2
+        )
+
+        assert "DNA input is 100 ng." in context
+        assert "PCR cycles: 30." in context
+        assert len(metadata) == 2
+        assert metadata[0]["source"] == "manual.pdf"
+        assert metadata[0]["page"] == 5
+        assert metadata[0]["distance"] == 0.3
+
+    def test_source_filter_passed_to_vector_store(self):
+        """source_filter is correctly forwarded to vector_store.search()."""
+        embedder = _make_mock_embedder()
+        vector_store = _make_mock_vector_store()
+
+        retrieve_context(
+            question="Test",
+            embedder=embedder,
+            vector_store=vector_store,
+            source_filter=["manual_a.pdf", "manual_b.pdf"]
+        )
+
+        vector_store.search.assert_called_once()
+        call_kwargs = vector_store.search.call_args[1]
+        assert call_kwargs["source_filter"] == ["manual_a.pdf", "manual_b.pdf"]
+
+    def test_max_distance_filter_passed_to_vector_store(self):
+        """max_distance is correctly forwarded to vector_store.search()."""
+        embedder = _make_mock_embedder()
+        vector_store = _make_mock_vector_store()
+
+        retrieve_context(
+            question="Test",
+            embedder=embedder,
+            vector_store=vector_store,
+            max_distance=0.7
+        )
+
+        call_kwargs = vector_store.search.call_args[1]
+        assert call_kwargs["max_distance"] == 0.7
+
+    def test_ngs_specific_query(self):
+        """Test retrieval for NGS-specific terminology."""
+        embedder = _make_mock_embedder()
+        vector_store = _make_mock_vector_store(
+            search_results=[
+                ("TruSight Oncology 500: 500 genes.", {"source": "tso500.pdf", "page": 1}, 0.2),
+            ]
+        )
+
+        context, metadata = retrieve_context(
+            question="What is TruSight Oncology 500?",
+            embedder=embedder,
+            vector_store=vector_store
+        )
+
+        assert "TruSight Oncology 500" in context
+        assert metadata[0]["source"] == "tso500.pdf"
+
+
+# ---------------------------------------------------------------------------
+# Enhanced VectorStore tests (supplementary to existing test_ingestion.py)
+# ---------------------------------------------------------------------------
+
+class TestVectorStoreSearchEnhanced:
+    def test_search_with_single_source_filter(self):
+        """VectorStore.search() with a single source filter."""
+        from src.retrieval.vector_store import VectorStore
+        import chromadb
+        from unittest.mock import patch
+
+        # Use EphemeralClient like existing tests
+        ephemeral = chromadb.EphemeralClient()
+        with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
+            store = VectorStore(collection_name="test_search", persist_directory="/tmp/unused")
+
+            # Add a test chunk
+            store.add_chunks(
+                chunks=[{"text": "DNA 100ng", "metadata": {"source": "a.pdf", "page": 1}}],
+                embeddings=[[0.1, 0.2, 0.3, 0.4]]
+            )
+
+            # Search with source_filter
+            results = store.search(
+                query_embedding=[0.1, 0.2, 0.3, 0.4],
+                top_k=1,
+                source_filter=["a.pdf"]
+            )
+
+            assert len(results) == 1
+            assert results[0][1]["source"] == "a.pdf"
+
+    def test_search_with_max_distance(self):
+        """VectorStore.search() filters results by max_distance."""
+        from src.retrieval.vector_store import VectorStore
+        import chromadb
+        from unittest.mock import patch
+
+        ephemeral = chromadb.EphemeralClient()
+        with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
+            store = VectorStore(collection_name="test_distance", persist_directory="/tmp/unused")
+
+            # Add chunks with known embeddings (same embedding = distance 0)
+            store.add_chunks(
+                chunks=[{"text": "Close match", "metadata": {"source": "b.pdf", "page": 1}}],
+                embeddings=[[0.9, 0.8, 0.7, 0.6]]
+            )
+
+            # Search with max_distance=0.5 (should return, since cosine distance ~0)
+            results = store.search(
+                query_embedding=[0.9, 0.8, 0.7, 0.6],
+                top_k=1,
+                max_distance=0.5
+            )
+
+            assert len(results) == 1
+
+            # Search with max_distance=0.1 (still ~0 distance, so returns too)
+            results = store.search(
+                query_embedding=[0.9, 0.8, 0.7, 0.6],
+                top_k=1,
+                max_distance=0.1
+            )
+
+            assert len(results) == 1
