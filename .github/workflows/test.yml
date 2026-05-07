@@ -23,15 +23,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run unit tests (no Docker needed)
+      - name: Run unit tests
         run: |
-          python -m pytest tests/ -v -k "not TestPgvectorStoreInit and not TestAddChunks and not TestSearch and not TestClearCollection" --ignore-glob="*pgvector*"
-          # Run all tests — pgvector integration tests auto-skip when PostgreSQL is down
           python -m pytest tests/ -v
 
   integration-tests:
-    name: Integration Tests (pgvector + Ollama)
+    name: Integration Tests (pgvector)
     runs-on: ubuntu-latest
+    services:
+      pgvector:
+        image: pgvector/pgvector:latest
+        env:
+          POSTGRES_USER: ngs_user
+          POSTGRES_PASSWORD: ngs_secure_password
+          POSTGRES_DB: ngs_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ngs_user -d ngs_rag"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -45,11 +58,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Start pgvector service
+      - name: Create pgvector extension
         run: |
-          docker compose up -d pgvector
-          echo "Waiting for pgvector..."
-          timeout 60 bash -c 'until docker exec ngs-rag-pgvector pg_isready -U ngs_user -d ngs_rag; do sleep 2; done'
+          PGPASSWORD=ngs_secure_password psql -h localhost -U ngs_user -d ngs_rag -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Run pgvector integration tests
         run: |
