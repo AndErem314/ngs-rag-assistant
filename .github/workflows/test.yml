@@ -9,17 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      ollama:
-        image: ollama/ollama:latest
-        ports:
-          - 11434:11434
-        options: >-
-          --health-cmd "curl -f http://localhost:11434 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -33,24 +22,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Start pgvector via docker-compose
+      - name: Start services with docker-compose
         run: |
           docker-compose up -d
-          # Wait for pgvector to be ready (install netcat then check port)
-          sudo apt-get update && sudo apt-get install -y netcat
-          timeout 30 bash -c 'until nc -z localhost 5432; do sleep 1; done'
-
-      - name: Wait for Ollama to be ready
-        run: |
+          echo "Waiting for pgvector..."
+          timeout 30 bash -c 'until docker exec ngs-rag-pgvector pg_isready -U ngs_user -d ngs_rag; do sleep 1; done'
+          echo "Waiting for Ollama..."
           timeout 30 bash -c 'until curl -f http://localhost:11434; do sleep 1; done'
 
       - name: Pull Ollama embedding model
         run: |
-          # Pull model into the Ollama service container
-          docker exec $(docker ps -q --filter "name=ollama") ollama pull haybu/mxbai-embed-large:latest
+          docker exec ngs-rag-ollama ollama pull haybu/mxbai-embed-large:latest
 
       - name: Run tests
         run: |
           python -m pytest tests/ -v
         env:
           OLLAMA_HOST: http://localhost:11434
+          PGVECTOR_HOST: localhost
+          PGVECTOR_PORT: 5432
+          PGVECTOR_USER: ngs_user
+          PGVECTOR_PASSWORD: ngs_secure_password
+          PGVECTOR_DB: ngs_rag
