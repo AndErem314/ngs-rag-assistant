@@ -1,5 +1,18 @@
 from typing import List, Tuple, Dict
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import pdfplumber  # Already in requirements.txt
+
+# Common NGS keywords for keyword-anchored chunking
+NGS_KEYWORDS = [
+    "DNA", "RNA", "PCR", "QC", "input", "ng", "µL", "°C", "cycles",
+    "TruSight", "Illumina", "sequencing", "library", "hybridization",
+    "exon", "gene", "variant", "mutation", "Q30", "Q20"
+]
+
+
+# ---------------------------------------------------------------------------
+# Existing chunk_document (unchanged)
+# ---------------------------------------------------------------------------
 
 def chunk_document(
     pages: List[Tuple[int, str]],
@@ -13,7 +26,7 @@ def chunk_document(
     Args:
         pages: List of (page_num, text) for each page. Page numbers are 1-indexed.
         source_filename: The name of the source PDF file.
-        chunk_size: Approximate number of tokens per chunk (character‑based).
+        chunk_size: Approximate number of tokens per chunk (character-based).
         overlap: Number of overlapping tokens between consecutive chunks.
 
     Returns:
@@ -25,14 +38,12 @@ def chunk_document(
     if not pages:
         return []
 
-    # Build a single string with page markers and keep track of where each page starts
-    # We'll use a special separator to later find page boundaries
     page_separator = "\n\n--- PAGE BREAK ---\n\n"
     full_text = ""
     page_boundaries = []  # list of (start_char_index, page_num)
     current_pos = 0
+
     for page_num, text in pages:
-        # Add the page content (without separator for the first page)
         if full_text:
             full_text += page_separator
             current_pos += len(page_separator)
@@ -40,7 +51,6 @@ def chunk_document(
         page_boundaries.append((current_pos, page_num))
         current_pos += len(text)
 
-    # Create the text splitter (using character count as proxy for tokens)
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap,
@@ -49,29 +59,17 @@ def chunk_document(
     )
     chunks = splitter.split_text(full_text)
 
-    # For each chunk, determine which page it starts on
-    # We can find the character index of the start of the chunk in full_text
-    # and then find the page boundary with the greatest start index <= chunk_start.
-    # A simpler approach: since we know the cumulative lengths, we can scan.
-    # We'll use a helper that returns the page number for a given character position.
     def get_page_for_pos(pos: int) -> int:
-        # page_boundaries are sorted by start index
         for i in range(len(page_boundaries) - 1, -1, -1):
             if pos >= page_boundaries[i][0]:
                 return page_boundaries[i][1]
-        return 1  # fallback
+        return 1
 
-    # Now we need to find the starting position of each chunk in full_text.
-    # Since split_text doesn't return offsets, we can reconstruct by scanning.
-    # We'll iterate over chunks and find their start index in full_text.
-    # A simple way: start at 0 and use .find() incrementally.
     last_pos = 0
     results = []
     for chunk in chunks:
-        # Find the chunk in full_text starting from last_pos
         pos = full_text.find(chunk, last_pos)
         if pos == -1:
-            # Fallback: if not found (rare), just use last_pos
             pos = last_pos
         page_num = get_page_for_pos(pos)
         results.append({
@@ -82,11 +80,239 @@ def chunk_document(
 
     return results
 
-# ----------------------------------------------------------------------
-# Example usage (commented out):
-# if __name__ == "__main__":
-#     from pdf_parser import extract_pages   # assuming Module 1
-#     pages = extract_pages("test.pdf")
-#     chunks = chunk_document(pages, "test.pdf", chunk_size=500, overlap=50)
-#     for chunk in chunks[:3]:
-#         print(f"Page {chunk['metadata']['page']}: {chunk['text'][:100]}...")
+
+# ---------------------------------------------------------------------------
+# New: Table-aware chunking (uses pdfplumber)
+# ---------------------------------------------------------------------------
+
+def chunk_document_table_aware(
+    pdf_path: str,
+    source_filename: str,
+    chunk_size: int = 500,
+    overlap: int = 50
+) -> List[Dict]:
+    """
+    Chunk PDF with table-aware logic: extract tables separately, preserve structure.
+
+    Args:
+        pdf_path: Path to the PDF file (for pdfplumber table extraction).
+        source_filename: Name of the source PDF (for metadata).
+        chunk_size: Non-table text chunk size.
+        overlap: Non-table text overlap.
+
+    Returns:
+        List of chunks with metadata, including table chunks (type: "table") and text chunks.
+    """
+    results = []
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
+            # Extract tables from the page
+            tables = page.extract_tables()
+            for table_idx, table in enumerate(tables):
+                if not table:
+                    continue
+                table_text = f"Table {table_idx+1}:\n"
+                if table[0]:
+                    table_text += "Header: " + " | ".join(str(cell) for cell in table[0]) + "\n"
+                for row in table[1:]:
+                    table_text += "Row: " + " | ".join(str(cell) for cell in row) + "\n"
+                results.append({
+                    "text": table_text,
+                    "metadata": {
+                        "source": source_filename,
+                        "page": page_num,
+                        "type": "table",
+                        "table_idx": table_idx
+                    }
+                })
+
+            # Extract non-table text (fallback to regular chunking for page text)
+            page_text = page.extract_text()
+            if page_text:
+                text_chunks = chunk_document(
+                    pages=[(page_num, page_text)],
+                    source_filename=source_filename,
+                    chunk_size=chunk_size,
+                    overlap=overlap
+                )
+                for chunk in text_chunks:
+                    chunk["metadata"]["type"] = "text"
+                results.extend(text_chunks)
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# New: Semantic chunking (uses LangChain SemanticChunker)
+# ---------------------------------------------------------------------------
+
+def chunk_document_semantic(
+    pages: List[Tuple[int, str]],
+    source_filename: str,
+    embedder_model: str = "nomic-embed-text-v2-moe",
+    chunk_size: int = 500,
+    overlap: int = 50
+) -> List[Dict]:
+    """
+    Chunk text semantically using LangChain's SemanticChunker (needs embeddings).
+
+    Args:
+        pages: List of (page_num, text) tuples.
+        source_filename: Source filename for metadata.
+        embedder_model: Ollama embedder model to use for semantic boundaries.
+        chunk_size: Fallback chunk size for non-semantic splitting.
+        overlap: Fallback overlap.
+
+    Returns:
+        List of semantically chunked dicts with metadata.
+    """
+    from langchain_experimental.text_splitter import SemanticChunker
+    from src.embeddings.embedder import OllamaEmbedder
+
+    embedder = OllamaEmbedder(model=embedder_model)
+
+    # Wrapper to make OllamaEmbedder compatible with SemanticChunker
+    class OllamaEmbeddingsWrapper:
+        def __init__(self, embedder: OllamaEmbedder):
+            self.embedder = embedder
+        def embed_documents(self, texts: List[str]) -> List[List[float]]:
+            return self.embedder.embed_batch(texts)
+        def embed_query(self, text: str) -> List[float]:
+            return self.embedder.embed(text)
+
+    embeddings_wrapper = OllamaEmbeddingsWrapper(embedder)
+    semantic_splitter = SemanticChunker(
+        embeddings=embeddings_wrapper,
+        breakpoint_threshold_type="percentile"
+    )
+
+    # Combine pages into single text with page markers
+    full_text = ""
+    page_map = []
+    for page_num, text in pages:
+        if full_text:
+            full_text += "\n\n--- PAGE BREAK ---\n\n"
+            page_map.append((len(full_text) - len("\n\n--- PAGE BREAK ---\n\n"), page_num))
+        full_text += text
+        page_map.append((len(full_text) - len(text), page_num))
+
+    # Split using semantic chunker
+    semantic_chunks = semantic_splitter.split_text(full_text)
+
+    # Assign page numbers to chunks
+    results = []
+    for chunk_text in semantic_chunks:
+        chunk_start = full_text.find(chunk_text)
+        if chunk_start == -1:
+            chunk_start = 0
+        # Find closest page boundary
+        page_num = 1
+        for char_start, p_num in sorted(page_map, key=lambda x: x[0], reverse=True):
+            if char_start <= chunk_start:
+                page_num = p_num
+                break
+        results.append({
+            "text": chunk_text,
+            "metadata": {"source": source_filename, "page": page_num, "type": "semantic"}
+        })
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# New: Keyword-anchored chunking (NGS-specific terms)
+# ---------------------------------------------------------------------------
+
+def chunk_document_keyword_anchored(
+    pages: List[Tuple[int, str]],
+    source_filename: str,
+    keywords: List[str] = None,
+    chunk_size: int = 500,
+    overlap: int = 50
+) -> List[Dict]:
+    """
+    Chunk text anchored on NGS-specific keywords to preserve domain context.
+
+    Args:
+        pages: List of (page_num, text) tuples.
+        source_filename: Source filename for metadata.
+        keywords: Custom keyword list (defaults to NGS_KEYWORDS).
+        chunk_size: Maximum chunk size between keywords.
+        overlap: Overlap between chunks.
+
+    Returns:
+        List of keyword-anchored chunks with metadata.
+    """
+    if keywords is None:
+        keywords = NGS_KEYWORDS
+
+    # Build a single text with page markers
+    full_text = ""
+    page_boundaries = []
+    current_pos = 0
+    for page_num, text in pages:
+        if full_text:
+            full_text += "\n\n--- PAGE BREAK ---\n\n"
+            current_pos += len("\n\n--- PAGE BREAK ---\n\n")
+        full_text += text
+        page_boundaries.append((current_pos, page_num))
+        current_pos += len(text)
+
+    # Find all keyword positions
+    keyword_positions = []
+    for keyword in keywords:
+        start = 0
+        while True:
+            pos = full_text.lower().find(keyword.lower(), start)
+            if pos == -1:
+                break
+            keyword_positions.append(pos)
+            start = pos + 1
+    keyword_positions = sorted(set(keyword_positions))
+
+    # Split text at keyword positions
+    chunks = []
+    last_pos = 0
+    for kw_pos in keyword_positions:
+        if kw_pos - last_pos > chunk_size:
+            gap_text = full_text[last_pos:kw_pos]
+            if gap_text.strip():
+                gap_pages = [(1, gap_text)]
+                gap_chunks = chunk_document(
+                    gap_pages, source_filename, chunk_size=chunk_size, overlap=overlap
+                )
+                for chunk in gap_chunks:
+                    chunk_start_in_gap = gap_text.find(chunk["text"])
+                    if chunk_start_in_gap == -1:
+                        chunk_start_in_gap = 0
+                    abs_pos = last_pos + chunk_start_in_gap
+                    page_num = 1
+                    for pb_pos, pb_page in sorted(page_boundaries, key=lambda x: x[0], reverse=True):
+                        if pb_pos <= abs_pos:
+                            page_num = pb_page
+                            break
+                    chunk["metadata"]["page"] = page_num
+                    chunk["metadata"]["type"] = "keyword_anchored"
+                chunks.extend(gap_chunks)
+        last_pos = kw_pos
+
+    # Add remaining text after last keyword
+    if last_pos < len(full_text):
+        remaining_text = full_text[last_pos:]
+        if remaining_text.strip():
+            remaining_pages = [(1, remaining_text)]
+            remaining_chunks = chunk_document(
+                remaining_pages, source_filename, chunk_size=chunk_size, overlap=overlap
+            )
+            for chunk in remaining_chunks:
+                chunk["metadata"]["type"] = "keyword_anchored"
+            chunks.extend(remaining_chunks)
+
+    # Fallback to regular chunking if no keywords found
+    if not chunks:
+        return chunk_document(
+            pages, source_filename, chunk_size=chunk_size, overlap=overlap
+        )
+
+    return chunks
