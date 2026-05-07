@@ -8,6 +8,9 @@ ollama>=0.1.0
 google-generativeai
 openai
 
+# Dev / Testing
+pytest
+
 # Optional
 sentence-transformers  # only if you want to fallback
 pytesseract            # if you need OCR later
