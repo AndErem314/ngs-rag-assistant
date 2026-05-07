@@ -11,3 +11,4 @@ openai
 sentence-transformers  # only if you want to fallback
 pytesseract            # if you need OCR later
 pillow                 # for image handling in PDFs
+psycopg2-binary        # for pgvector (PostgreSQL vector extension) backend
