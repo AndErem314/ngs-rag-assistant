@@ -1,5 +1,5 @@
 from typing import List, Tuple, Dict
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pdfplumber  # Already in requirements.txt
 
 # Common NGS keywords for keyword-anchored chunking

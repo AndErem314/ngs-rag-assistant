@@ -22,12 +22,14 @@ from unittest.mock import MagicMock, patch
 
 def _make_store(collection_name: str = "test"):
     """Return a VectorStore backed by an in-memory ChromaDB client."""
-    # We patch chromadb.PersistentClient so VectorStore never touches disk.
+    import uuid
+    # Use unique collection name to avoid state leaking between tests
+    unique_name = f"{collection_name}_{uuid.uuid4().hex[:8]}"
     ephemeral = chromadb.EphemeralClient()
 
     with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
         from src.retrieval.vector_store import VectorStore
-        store = VectorStore(collection_name=collection_name, persist_directory="/tmp/unused")
+        store = VectorStore(collection_name=unique_name, persist_directory="/tmp/unused")
 
     return store
 

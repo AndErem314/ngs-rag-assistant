@@ -13,13 +13,21 @@ class PgvectorStore:
 
     def __init__(
         self,
-        db_url: str = "postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag",
+        db_url: str = None,
         collection_name: str = "documents",
         embedding_dim: int = 1024  # Default for mxbai-embed-large-latest
     ):
-        self.db_url = db_url
         self.collection_name = collection_name
         self.embedding_dim = embedding_dim
+        # Default URL matches docker-compose.yml credentials
+        if db_url is None:
+            import os
+            self.db_url = os.environ.get(
+                "NGS_PGVECTOR_URL",
+                "postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag"
+            )
+        else:
+            self.db_url = db_url
         self._init_db()
 
     def _init_db(self):

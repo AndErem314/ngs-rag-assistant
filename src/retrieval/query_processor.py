@@ -3,7 +3,6 @@
 from typing import List, Dict, Optional, Tuple
 from src.embeddings.embedder import OllamaEmbedder
 from src.retrieval.vector_store import VectorStore
-from src.retrieval.pgvector_store import PgvectorStore
 
 
 def retrieve_context(

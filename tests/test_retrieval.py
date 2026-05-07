@@ -148,12 +148,14 @@ class TestVectorStoreSearchEnhanced:
         """VectorStore.search() with a single source filter."""
         from src.retrieval.vector_store import VectorStore
         import chromadb
+        import uuid
         from unittest.mock import patch
 
-        # Use EphemeralClient like existing tests
+        # Use EphemeralClient with unique collection name
         ephemeral = chromadb.EphemeralClient()
+        unique_name = f"test_search_{uuid.uuid4().hex[:8]}"
         with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
-            store = VectorStore(collection_name="test_search", persist_directory="/tmp/unused")
+            store = VectorStore(collection_name=unique_name, persist_directory="/tmp/unused")
 
             # Add a test chunk
             store.add_chunks(
@@ -175,11 +177,13 @@ class TestVectorStoreSearchEnhanced:
         """VectorStore.search() filters results by max_distance."""
         from src.retrieval.vector_store import VectorStore
         import chromadb
+        import uuid
         from unittest.mock import patch
 
         ephemeral = chromadb.EphemeralClient()
+        unique_name = f"test_distance_{uuid.uuid4().hex[:8]}"
         with patch("src.retrieval.vector_store.chromadb.PersistentClient", return_value=ephemeral):
-            store = VectorStore(collection_name="test_distance", persist_directory="/tmp/unused")
+            store = VectorStore(collection_name=unique_name, persist_directory="/tmp/unused")
 
             # Add chunks with known embeddings (same embedding = distance 0)
             store.add_chunks(

@@ -2,12 +2,30 @@
 Integration tests for PgvectorStore (secondary pgvector backend).
 
 Note: Requires pgvector running (use `docker-compose up -d` to start).
-Tests assume default connection: postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag
+Tests assume default connection: postgresql://ngs_user:***@localhost:5432/ngs_rag
+These tests are automatically skipped if PostgreSQL is unavailable.
 """
 
 import pytest
 import json
 from src.retrieval.pgvector_store import PgvectorStore
+
+
+def _pgvector_available() -> bool:
+    """Check if PostgreSQL with pgvector is reachable."""
+    import psycopg2
+    try:
+        conn = psycopg2.connect("postgresql://ngs_user:***@localhost:5432/ngs_rag")
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+pgvector_available = pytest.mark.skipif(
+    not _pgvector_available(),
+    reason="PostgreSQL with pgvector not available (start with: docker-compose up -d)"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -16,7 +34,9 @@ from src.retrieval.pgvector_store import PgvectorStore
 
 @pytest.fixture(scope="module")
 def store():
-    """Initialize PgvectorStore with test collection."""
+    """Initialize PgvectorStore with test collection (skipped if PostgreSQL unavailable)."""
+    if not _pgvector_available():
+        pytest.skip("PostgreSQL with pgvector not available (start with: docker-compose up -d)")
     test_store = PgvectorStore(
         db_url="postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag",
         collection_name="test_pgvector",
@@ -52,6 +72,7 @@ def sample_embeddings():
 # Tests
 # ---------------------------------------------------------------------------
 
+@pgvector_available
 class TestPgvectorStoreInit:
     def test_initialization(self):
         store = PgvectorStore(collection_name="init_test")
@@ -78,6 +99,7 @@ class TestMakeChunkId:
         assert id1 != id2
 
 
+@pgvector_available
 class TestAddChunks:
     def test_add_chunks_success(self, store, sample_chunks, sample_embeddings):
         store.add_chunks(sample_chunks, sample_embeddings)
@@ -99,6 +121,7 @@ class TestAddChunks:
         assert len(results) == 3
 
 
+@pgvector_available
 class TestSearch:
     def test_search_returns_results(self, store, sample_chunks, sample_embeddings):
         store.add_chunks(sample_chunks, sample_embeddings)
@@ -137,6 +160,7 @@ class TestSearch:
         assert "TruSight Oncology 500" in results[0][0]
 
 
+@pgvector_available
 class TestClearCollection:
     def test_clear_removes_all_records(self, store, sample_chunks, sample_embeddings):
         store.add_chunks(sample_chunks, sample_embeddings)
