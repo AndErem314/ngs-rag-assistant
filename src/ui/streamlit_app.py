@@ -25,7 +25,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 DEFAULT_OLLAMA_HOST  = os.getenv("OLLAMA_HOST",       "http://localhost:11434")
-DEFAULT_EMBED_MODEL  = os.getenv("EMBEDDING_MODEL",   "nomic-embed-text-v2-moe")
+DEFAULT_EMBED_MODEL  = os.getenv("EMBEDDING_MODEL",   "haybu/mxbai-embed-large:latest")
 DEFAULT_LLM_MODEL    = os.getenv("LLM_MODEL",         "llama3.1:8b")
 MAX_PDFS             = 5
 DEFAULT_TOP_K        = 5

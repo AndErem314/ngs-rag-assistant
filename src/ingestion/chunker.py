@@ -1,6 +1,18 @@
 from typing import List, Tuple, Dict
+from enum import Enum
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import pdfplumber  # Already in requirements.txt
+import pdfplumber
+
+# ---------------------------------------------------------------------------
+# Chunking Strategy
+# ---------------------------------------------------------------------------
+
+class ChunkingStrategy(Enum):
+    """Available chunking strategies for NGS RAG pipeline."""
+    BASIC = "basic"
+    TABLE_AWARE = "table_aware"
+    SEMANTIC = "semantic"
+    KEYWORD_ANCHORED = "keyword"
 
 # Common NGS keywords for keyword-anchored chunking
 NGS_KEYWORDS = [
@@ -9,9 +21,8 @@ NGS_KEYWORDS = [
     "exon", "gene", "variant", "mutation", "Q30", "Q20"
 ]
 
-
 # ---------------------------------------------------------------------------
-# Existing chunk_document (unchanged)
+# Existing chunk_document (unchanged, with syntax fixes)
 # ---------------------------------------------------------------------------
 
 def chunk_document(
@@ -74,12 +85,11 @@ def chunk_document(
         page_num = get_page_for_pos(pos)
         results.append({
             "text": chunk,
-            "metadata": {"source": source_filename, "page": page_num}
+            "metadata": {"source": source_filename, "page": page_num, "type": "basic"}
         })
         last_pos = pos + len(chunk)
 
     return results
-
 
 # ---------------------------------------------------------------------------
 # New: Table-aware chunking (uses pdfplumber)
@@ -142,7 +152,6 @@ def chunk_document_table_aware(
 
     return results
 
-
 # ---------------------------------------------------------------------------
 # New: Semantic chunking (uses LangChain SemanticChunker)
 # ---------------------------------------------------------------------------
@@ -150,7 +159,7 @@ def chunk_document_table_aware(
 def chunk_document_semantic(
     pages: List[Tuple[int, str]],
     source_filename: str,
-    embedder_model: str = "nomic-embed-text-v2-moe",
+    embedder_model: str = "haybu/mxbai-embed-large:latest",
     chunk_size: int = 500,
     overlap: int = 50
 ) -> List[Dict]:
@@ -167,58 +176,64 @@ def chunk_document_semantic(
     Returns:
         List of semantically chunked dicts with metadata.
     """
-    from langchain_experimental.text_splitter import SemanticChunker
-    from src.embeddings.embedder import OllamaEmbedder
+    try:
+        from langchain_experimental.text_splitter import SemanticChunker
+        from src.embeddings.embedder import OllamaEmbedder
 
-    embedder = OllamaEmbedder(model=embedder_model)
+        embedder = OllamaEmbedder(model=embedder_model)
 
-    # Wrapper to make OllamaEmbedder compatible with SemanticChunker
-    class OllamaEmbeddingsWrapper:
-        def __init__(self, embedder: OllamaEmbedder):
-            self.embedder = embedder
-        def embed_documents(self, texts: List[str]) -> List[List[float]]:
-            return self.embedder.embed_batch(texts)
-        def embed_query(self, text: str) -> List[float]:
-            return self.embedder.embed(text)
+        # Wrapper to make OllamaEmbedder compatible with SemanticChunker
+        class OllamaEmbeddingsWrapper:
+            def __init__(self, embedder: OllamaEmbedder):
+                self.embedder = embedder
+            def embed_documents(self, texts: List[str]) -> List[List[float]]:
+                return self.embedder.embed_batch(texts)
+            def embed_query(self, text: str) -> List[float]:
+                return self.embedder.embed(text)
 
-    embeddings_wrapper = OllamaEmbeddingsWrapper(embedder)
-    semantic_splitter = SemanticChunker(
-        embeddings=embeddings_wrapper,
-        breakpoint_threshold_type="percentile"
-    )
+        embeddings_wrapper = OllamaEmbeddingsWrapper(embedder)
+        semantic_splitter = SemanticChunker(
+            embeddings=embeddings_wrapper,
+            breakpoint_threshold_type="percentile"
+        )
 
-    # Combine pages into single text with page markers
-    full_text = ""
-    page_map = []
-    for page_num, text in pages:
-        if full_text:
-            full_text += "\n\n--- PAGE BREAK ---\n\n"
-            page_map.append((len(full_text) - len("\n\n--- PAGE BREAK ---\n\n"), page_num))
-        full_text += text
-        page_map.append((len(full_text) - len(text), page_num))
+        # Combine pages into single text with page markers
+        full_text = ""
+        page_map = []
+        for page_num, text in pages:
+            if full_text:
+                full_text += "\n\n--- PAGE BREAK ---\n\n"
+                page_map.append((len(full_text) - len("\n\n--- PAGE BREAK ---\n\n"), page_num))
+            full_text += text
+            page_map.append((len(full_text) - len(text), page_num))
 
-    # Split using semantic chunker
-    semantic_chunks = semantic_splitter.split_text(full_text)
+        # Split using semantic chunker
+        semantic_chunks = semantic_splitter.split_text(full_text)
 
-    # Assign page numbers to chunks
-    results = []
-    for chunk_text in semantic_chunks:
-        chunk_start = full_text.find(chunk_text)
-        if chunk_start == -1:
-            chunk_start = 0
-        # Find closest page boundary
-        page_num = 1
-        for char_start, p_num in sorted(page_map, key=lambda x: x[0], reverse=True):
-            if char_start <= chunk_start:
-                page_num = p_num
-                break
-        results.append({
-            "text": chunk_text,
-            "metadata": {"source": source_filename, "page": page_num, "type": "semantic"}
-        })
+        # Assign page numbers to chunks
+        results = []
+        for chunk_text in semantic_chunks:
+            chunk_start = full_text.find(chunk_text)
+            if chunk_start == -1:
+                chunk_start = 0
+            # Find closest page boundary
+            page_num = 1
+            for char_start, p_num in sorted(page_map, key=lambda x: x[0], reverse=True):
+                if char_start <= chunk_start:
+                    page_num = p_num
+                    break
+            results.append({
+                "text": chunk_text,
+                "metadata": {"source": source_filename, "page": page_num, "type": "semantic"}
+            })
 
-    return results
-
+        return results
+    except ImportError:
+        print("langchain_experimental not installed. Falling back to basic chunking.")
+        return chunk_document(pages, source_filename, chunk_size, overlap)
+    except Exception as e:
+        print(f"Semantic chunking failed: {e}. Falling back to basic chunking.")
+        return chunk_document(pages, source_filename, chunk_size, overlap)
 
 # ---------------------------------------------------------------------------
 # New: Keyword-anchored chunking (NGS-specific terms)
@@ -248,13 +263,14 @@ def chunk_document_keyword_anchored(
         keywords = NGS_KEYWORDS
 
     # Build a single text with page markers
+    page_separator = "\n\n--- PAGE BREAK ---\n\n"
     full_text = ""
     page_boundaries = []
     current_pos = 0
     for page_num, text in pages:
         if full_text:
-            full_text += "\n\n--- PAGE BREAK ---\n\n"
-            current_pos += len("\n\n--- PAGE BREAK ---\n\n")
+            full_text += page_separator
+            current_pos += len(page_separator)
         full_text += text
         page_boundaries.append((current_pos, page_num))
         current_pos += len(text)
@@ -316,3 +332,44 @@ def chunk_document_keyword_anchored(
         )
 
     return chunks
+
+# ---------------------------------------------------------------------------
+# Unified function: chunk with strategy
+# ---------------------------------------------------------------------------
+
+def chunk_document_with_strategy(
+    pages: List[Tuple[int, str]],
+    source_filename: str,
+    pdf_path: str = None,
+    strategy: ChunkingStrategy = ChunkingStrategy.BASIC,
+    chunk_size: int = 500,
+    overlap: int = 50,
+    **kwargs
+) -> List[Dict]:
+    """
+    Unified chunking function that delegates to the selected strategy.
+
+    Args:
+        pages: List of (page_num, text) tuples (for non-table-aware strategies).
+        source_filename: Source filename for metadata.
+        pdf_path: Path to PDF file (required for TABLE_AWARE strategy).
+        strategy: ChunkingStrategy enum value.
+        chunk_size: Chunk size.
+        overlap: Overlap size.
+        **kwargs: Additional args (e.g., embedder_model for SEMANTIC).
+
+    Returns:
+        List of chunk dicts with metadata.
+    """
+    if strategy == ChunkingStrategy.TABLE_AWARE:
+        if pdf_path is None:
+            raise ValueError("pdf_path is required for TABLE_AWARE strategy")
+        return chunk_document_table_aware(pdf_path, source_filename, chunk_size, overlap)
+    elif strategy == ChunkingStrategy.SEMANTIC:
+        embedder_model = kwargs.get("embedder_model", "haybu/mxbai-embed-large:latest")
+        return chunk_document_semantic(pages, source_filename, embedder_model, chunk_size, overlap)
+    elif strategy == ChunkingStrategy.KEYWORD_ANCHORED:
+        keywords = kwargs.get("keywords", None)
+        return chunk_document_keyword_anchored(pages, source_filename, keywords, chunk_size, overlap)
+    else:  # BASIC
+        return chunk_document(pages, source_filename, chunk_size, overlap)

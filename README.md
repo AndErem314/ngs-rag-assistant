@@ -7,7 +7,7 @@ Everything runs **fully locally** via Ollama — no API keys, no internet connec
 
 Built with:
 
-- **Ollama** — local embeddings (`nomic-embed-text-v2-moe`) and generation (`llama3.1:8b`)
+- **Ollama** — local embeddings (`haybu/mxbai-embed-large:latest`) and generation (`llama3.1:8b`)
 - **Streamlit** — interactive web UI
 - **ChromaDB** — persistent vector storage with content-hash deduplication
 - **PDFPlumber** — page-by-page text extraction from PDFs
@@ -84,7 +84,7 @@ chunker.py          — text is split into overlapping chunks
    │
    ▼
 embedder.py         — each chunk is sent to Ollama's embeddings endpoint
-                       using the nomic-embed-text-v2-moe model;
+                       using the haybu/mxbai-embed-large:latest model;
                        returns a float vector per chunk
    │
    ▼
@@ -162,7 +162,7 @@ Download from [ollama.com](https://ollama.com/) and install. Then pull both requ
 
 ```bash
 # Embedding model
-ollama pull nomic-embed-text-v2-moe
+ollama pull haybu/mxbai-embed-large:latest
 
 # Generation model
 ollama pull llama3.1:8b
@@ -209,7 +209,7 @@ Edit `.env` if needed (all values have sensible defaults):
 ```env
 # Ollama server (local by default)
 OLLAMA_HOST=http://localhost:11434
-EMBEDDING_MODEL=nomic-embed-text-v2-moe
+EMBEDDING_MODEL=haybu/mxbai-embed-large:latest
 LLM_MODEL=llama3.1:8b
 
 # Only needed for the validation question-generation script (not the main app)
@@ -308,7 +308,7 @@ What are the safety precautions when handling the enzymatic reagents?
 
 | Model | Purpose | RAM (Q4) | Notes |
 |-------|---------|----------|-------|
-| `nomic-embed-text-v2-moe` | Embeddings | ~1 GB | Top BEIR benchmark performance; 100+ languages; supports dimension cropping to 256/512 for memory efficiency |
+| `haybu/mxbai-embed-large:latest` | Embeddings | ~1 GB | Top BEIR benchmark performance; 100+ languages; supports dimension cropping to 256/512 for memory efficiency |
 | `llama3.1:8b` | Generation | ~6–8 GB | Best balance of speed and accuracy; strong instruction-following; recommended default |
 | `phi3:mini` | Generation (alt) | ~3–4 GB | 3.8B parameters; use if RAM is limited; slightly lower answer quality |
 
@@ -360,6 +360,72 @@ pytest tests/test_pgvector_store.py -v
 | `test_chunker.py` | Page number assignment, chunk size boundaries, overlap behavior |
 | `test_embedder.py` | OllamaEmbedder initialization, embedding generation, error handling |
 | `test_pgvector_store.py` | pgvector backend: init, add chunks, search, clear (auto-skips without DB) |
+
+### Chunking Strategies (Phase 3 Enhancement)
+
+The pipeline supports multiple chunking strategies for NGS-specific content:
+
+| Strategy | Function | Best For |
+|----------|----------|----------|
+| `basic` | `chunk_document()` | Default; general text with `RecursiveCharacterTextSplitter` |
+| `table_aware` | `chunk_document_table_aware()` | PDFs with tables; extracts tables as structured Markdown |
+| `semantic` | `chunk_document_semantic()` | Topic-based splitting using embedding similarity |
+| `keyword` | `chunk_document_keyword_anchored()` | NGS protocols; anchors on terms like DNA, RNA, PCR |
+
+Switch strategy in your pipeline:
+```python
+from src.ingestion import chunk_document_with_strategy, ChunkingStrategy
+
+chunks = chunk_document_with_strategy(
+    pages=pages,
+    source_filename="manual.pdf",
+    pdf_path="data/manual.pdf",  # Required for table_aware
+    strategy=ChunkingStrategy.TABLE_AWARE,
+)
+```
+
+### Hybrid Search (Phase 4 Enhancement)
+
+ChromDB now supports hybrid search combining vector similarity with BM25 keyword matching:
+
+```python
+from src.retrieval.vector_store import VectorStore
+
+store = VectorStore()
+results = store.search(
+    query_embedding=embedding,
+    top_k=5,
+    hybrid=True,           # Enable hybrid search
+    query_text="DNA input PCR",  # Required for BM25
+)
+```
+
+Hybrid search gives 60% weight to vector similarity and 40% to keyword relevance — ideal for NGS queries where exact terms matter.
+
+### Retrieval Accuracy Test (Phase 2)
+
+Test how well the RAG pipeline retrieves the correct pages for NGS questions:
+
+```bash
+# Basic test (vector search only)
+python scripts/test_retrieval_accuracy.py
+
+# Test with table-aware chunking
+python scripts/test_retrieval_accuracy.py --strategy table_aware
+
+# Test with hybrid search
+python scripts/test_retrieval_accuracy.py --hybrid
+
+# Custom PDF and questions
+python scripts/test_retrieval_accuracy.py \
+    --pdf data/manual.pdf \
+    --questions validation/questions/custom.json
+```
+
+The test reports:
+- **Exact page match**: Expected page is in top-k results
+- **Within tolerance**: Expected page within ±2 pages
+- **Average distance**: Lower is better (cosine distance)
 
 ---
 
@@ -454,7 +520,7 @@ Track your results in a spreadsheet to compare performance across different `top
 |---------|-------------|-----|
 | "Cannot reach Ollama" | `ollama serve` not running | Run `ollama serve` in a terminal |
 | "Cannot reach Ollama" | Wrong host | Update `OLLAMA_HOST` in `.env` or the sidebar field |
-| All embeddings failed | Model not pulled | Run `ollama pull nomic-embed-text-v2-moe` |
+| All embeddings failed | Model not pulled | Run `ollama pull haybu/mxbai-embed-large:latest` |
 | Empty answers / "cannot find information" | Max distance too strict | Raise the Max distance slider in the sidebar |
 | Slow ingestion | Large PDF or CPU-only Ollama | Normal — embedding 500-chunk PDFs takes ~1–2 min on CPU |
 | Duplicate sources in sidebar | — | Fixed in current version via set-based deduplication on re-ingest |
