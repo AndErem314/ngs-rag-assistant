@@ -337,18 +337,29 @@ Retrieved chunks are filtered by cosine distance before being sent to the LLM. T
 
 ## 🧪 Testing
 
-Run the full test suite with:
+This project uses **local testing only** (no CI/CD pipeline). Run the full test suite with:
 
 ```bash
 pytest tests/ -v
 ```
 
-Tests use `chromadb.EphemeralClient` (in-memory, no disk I/O) and mock `OllamaEmbedder` via `unittest.mock.MagicMock`, so **no Ollama server is required** to run the tests.
+**Unit tests** use `chromadb.EphemeralClient` (in-memory, no disk I/O) and mock `OllamaEmbedder` via `unittest.mock.MagicMock`, so **no Ollama server is required**.
+
+**Integration tests** (pgvector) require a running PostgreSQL + pgvector instance. They auto-skip if the database is unavailable. To run them locally:
+
+```bash
+docker compose up -d pgvector
+export NGS_PGVECTOR_URL=postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag
+pytest tests/test_pgvector_store.py -v
+```
 
 | Test file | What it covers |
 |-----------|---------------|
-| `test_ingestion.py` | `_make_chunk_id` stability and collision resistance; `add_chunks` happy path and ID determinism; re-ingestion deduplication (the critical upsert regression test); `clear_collection` |
-| `test_retrieval.py` | `VectorStore.search` — top-K, source filter, max_distance, empty collection; `retrieve_context` — happy path, empty embedding (Ollama down), max_distance filtering, metadata shape including distance field |
+| `test_ingestion.py` | `_make_chunk_id` stability and collision resistance; `add_chunks` happy path and ID determinism; re-ingestion deduplication (upsert regression); `clear_collection` |
+| `test_retrieval.py` | `VectorStore.search` — top-K, source filter, max_distance, empty collection; `retrieve_context` — happy path, empty embedding (Ollama down), max_distance filtering, metadata shape |
+| `test_chunker.py` | Page number assignment, chunk size boundaries, overlap behavior |
+| `test_embedder.py` | OllamaEmbedder initialization, embedding generation, error handling |
+| `test_pgvector_store.py` | pgvector backend: init, add chunks, search, clear (auto-skips without DB) |
 
 ---
 
