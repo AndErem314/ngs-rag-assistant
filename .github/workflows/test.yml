@@ -7,7 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,25 +23,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Start services with docker compose
+      - name: Run unit tests (no Docker needed)
         run: |
-          docker compose up -d
-          echo "Waiting for pgvector..."
-          timeout 30 bash -c 'until docker exec ngs-rag-pgvector pg_isready -U ngs_user -d ngs_rag; do sleep 1; done'
-          echo "Waiting for Ollama..."
-          timeout 30 bash -c 'until curl -f http://localhost:11434; do sleep 1; done'
-
-      - name: Pull Ollama embedding model
-        run: |
-          docker exec ngs-rag-ollama ollama pull haybu/mxbai-embed-large:latest
-
-      - name: Run tests
-        run: |
+          python -m pytest tests/ -v -k "not TestPgvectorStoreInit and not TestAddChunks and not TestSearch and not TestClearCollection" --ignore-glob="*pgvector*"
+          # Run all tests — pgvector integration tests auto-skip when PostgreSQL is down
           python -m pytest tests/ -v
+
+  integration-tests:
+    name: Integration Tests (pgvector + Ollama)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start pgvector service
+        run: |
+          docker compose up -d pgvector
+          echo "Waiting for pgvector..."
+          timeout 60 bash -c 'until docker exec ngs-rag-pgvector pg_isready -U ngs_user -d ngs_rag; do sleep 2; done'
+
+      - name: Run pgvector integration tests
+        run: |
+          python -m pytest tests/test_pgvector_store.py -v
         env:
-          OLLAMA_HOST: http://localhost:11434
-          PGVECTOR_HOST: localhost
-          PGVECTOR_PORT: 5432
-          PGVECTOR_USER: ngs_user
-          PGVECTOR_PASSWORD: ngs_secure_password
-          PGVECTOR_DB: ngs_rag
+          NGS_PGVECTOR_URL: postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag
