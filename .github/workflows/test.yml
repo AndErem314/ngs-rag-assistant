@@ -22,9 +22,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Start services with docker-compose
+      - name: Start services with docker compose
         run: |
-          docker-compose up -d
+          docker compose up -d
           echo "Waiting for pgvector..."
           timeout 30 bash -c 'until docker exec ngs-rag-pgvector pg_isready -U ngs_user -d ngs_rag; do sleep 1; done'
           echo "Waiting for Ollama..."
