@@ -329,15 +329,18 @@ def main():
 
     with open(args.output, 'w') as f:
         json.dump(all_metrics, f, indent=2)
-
     # Print summary
     print(f"\n{'='*60}")
     print(f"DRIFT MONITOR SUMMARY ({timestamp})")
     print(f"{'='*60}")
-    print(f"\nRetrieval Metrics:")
-    print(f"  Exact Accuracy: {retrieval_metrics['exact_accuracy']*100:.1f}%")
-    print(f"  Tolerance Accuracy: {retrieval_metrics['tolerance_accuracy']*100:.1f}%")
-    print(f"  Avg Distance: {retrieval_metrics['avg_distance']:.3f}")
+
+    if retrieval_metrics:
+        print(f"\nRetrieval Metrics:")
+        print(f"  Exact Accuracy: {retrieval_metrics['exact_accuracy']*100:.1f}%")
+        print(f"  Tolerance Accuracy: {retrieval_metrics['tolerance_accuracy']*100:.1f}%")
+        print(f"  Avg Distance: {retrieval_metrics['avg_distance']:.3f}")
+    else:
+        print(f"\nRetrieval Metrics: Not available (test failed or PDF missing)")
 
     print(f"\nEmbedding Drift (avg similarity): {embedding_drift['avg_similarity']:.3f}")
     if embedding_drift['drift_results']:
