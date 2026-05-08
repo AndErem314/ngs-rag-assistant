@@ -23,6 +23,11 @@ Built with:
 - Download the report as a `.md` file
 - **Re-ingest safely** — uploading the same PDF twice updates records in place; no duplicates are created
 - Ollama **connectivity check** built into the sidebar with a live status indicator
+- **4 Chunking Strategies** — basic, table-aware, semantic, keyword-anchored (NGS-optimized)
+- **Hybrid Search** — combines vector similarity (60%) + BM25 keyword matching (40%)
+- **Dual Backend** — ChromaDB (primary) + pgvector (PostgreSQL, enterprise-ready)
+- **Expanded Testing Framework** — 45+ unit tests + adversarial/bias/drift tests
+- **Observability Dashboard** — Streamlit dashboard with KPIs, time-series charts, latency tracking
 
 ---
 
@@ -33,32 +38,51 @@ ngs-rag-assistant/
 ├── README.md
 ├── requirements.txt
 ├── .env.example
-├── docker-compose.yml          # optional
+├── docker-compose.yml          # optional (pgvector + optional Prometheus/Grafana)
 ├── src/
 │   ├── __init__.py
 │   ├── ingestion/
 │   │   ├── pdf_parser.py       # page-by-page text extraction (pdfplumber)
-│   │   └── chunker.py          # overlapping token-based chunking
+│   │   ├── chunker.py          # 4 strategies: basic, table_aware, semantic, keyword
+│   │   └── chunking_strategy.py # ChunkingStrategy enum
 │   ├── embeddings/
 │   │   └── embedder.py         # OllamaEmbedder — host-aware ollama.Client
 │   ├── retrieval/
-│   │   ├── vector_store.py     # ChromaDB persistence, hash IDs, upsert, distance filter
+│   │   ├── vector_store.py     # ChromaDB persistence, hash IDs, upsert, hybrid search
+│   │   ├── pgvector_store.py   # PostgreSQL/pgvector backend (enterprise)
 │   │   └── query_processor.py  # embed question → search → return context + metadata
 │   ├── generation/
 │   │   └── llm_client.py       # OllamaGenerator — chat() with system/user roles
 │   ├── report/
 │   │   └── report_builder.py   # run predefined questions → compile Markdown report
-│   └── ui/
-│       └── streamlit_app.py    # main Streamlit application
+│   ├── ui/
+│   │   └── streamlit_app.py    # main Streamlit application
+│   └── observability/          # Phase 7: Metrics & observability (NEW)
+│       ├── __init__.py
+│       ├── metrics.py           # MetricsCollector (SQLite), LatencyTimer
+│       └── dashboard.py         # Streamlit observability dashboard
 ├── tests/
-│   ├── test_ingestion.py       # VectorStore: IDs, upsert, re-ingestion, clear
-│   └── test_retrieval.py       # VectorStore.search + retrieve_context smoke tests
+│   ├── test_ingestion.py       # Chunker tests
+│   ├── test_retrieval.py       # VectorStore.search + retrieve_context tests
+│   ├── test_chunker.py        # 4 chunking strategies, edge cases
+│   ├── test_embedder.py       # OllamaEmbedder tests
+│   ├── test_pgvector_store.py # pgvector integration tests (auto-skip without DB)
+│   ├── test_adversarial.py     # Phase 6.2.A: 17 adversarial/malformed query tests (NEW)
+│   └── test_bias.py           # Phase 6.2.C: 11 bias/fairness tests (NEW)
 ├── scripts/
-│   └── generate_questions.py   # GPT-4o-mini / Gemini question generation from PDF manuals
+│   ├── generate_questions.py   # GPT-4o-mini / Gemini question generation from PDF manuals
+│   ├── test_retrieval_accuracy.py # Retrieval accuracy test (page-level, drift-integrated)
+│   └── drift_monitor.py       # Phase 6.2.B: embedding + retrieval drift tracking (NEW)
 ├── validation/
 │   └── questions/              # pre-generated Q&A sets for retrieval evaluation
-│       └── TruSight-Oncology-500-v2_questions.json
+│       ├── TruSight-Oncology-500-v2_questions.json
+│       ├── TruSeq-DNA-PCR-Free_questions.json
+│       ├── TruSeq-Nano-DNA_questions.json
+│       ├── TruSeq-Stranded-Total-RNA_questions.json
+│       └── Nextera-XT-DNA_questions.json
 ├── data/                       # place your PDFs here (gitignored)
+├── observability/               # Phase 7: Metrics database (gitignored)
+│   └── metrics.db             # SQLite database for historical metrics
 └── notebooks/                  # experiment notebooks
 ```
 
@@ -349,7 +373,7 @@ pytest tests/ -v
 
 ```bash
 docker compose up -d pgvector
-export NGS_PGVECTOR_URL=postgresql://ngs_user:ngs_secure_password@localhost:5432/ngs_rag
+export NGS_PGVECTOR_URL=postgresql://ngs_user:***@localhost:5432/ngs_rag
 pytest tests/test_pgvector_store.py -v
 ```
 
@@ -357,11 +381,83 @@ pytest tests/test_pgvector_store.py -v
 |-----------|---------------|
 | `test_ingestion.py` | `_make_chunk_id` stability and collision resistance; `add_chunks` happy path and ID determinism; re-ingestion deduplication (upsert regression); `clear_collection` |
 | `test_retrieval.py` | `VectorStore.search` — top-K, source filter, max_distance, empty collection; `retrieve_context` — happy path, empty embedding (Ollama down), max_distance filtering, metadata shape |
-| `test_chunker.py` | Page number assignment, chunk size boundaries, overlap behavior |
+| `test_chunker.py` | Page number assignment, chunk size boundaries, overlap behavior, **4 chunking strategies** |
 | `test_embedder.py` | OllamaEmbedder initialization, embedding generation, error handling |
 | `test_pgvector_store.py` | pgvector backend: init, add chunks, search, clear (auto-skips without DB) |
+| `test_adversarial.py` | **Phase 6.2.A**: 17 tests for malformed queries, SQL injection, XSS, unicode, edge cases |
+| `test_bias.py` | **Phase 6.2.C**: 11 tests for cross-protocol bias, dataset parity, version detection |
 
-### Chunking Strategies (Phase 3 Enhancement)
+### Phase 6: Expanded Testing & Automation (✅ COMPLETE)
+
+Phase 6 added AI-specific testing aligned with the **IDBS Principal AI Test Engineer** role requirements:
+
+#### 6.2.A: Adversarial Testing (✅)
+Tests system robustness against malicious/malformed inputs:
+- Malformed queries (empty, whitespace, incomplete terms)
+- Security attacks (SQL injection, XSS, null bytes, control characters)
+- Edge cases (10k char queries, unicode/emoji, conflicting terms)
+- **File**: `tests/test_adversarial.py` (17 test cases)
+
+#### 6.2.B: Drift Monitoring (✅)
+Tracks embedding and retrieval quality over time:
+- Embedding drift detection (cosine similarity <0.95 triggers alert)
+- Retrieval accuracy drift (page-level metrics across runs)
+- Reference NGS texts for stability checks
+- **File**: `scripts/drift_monitor.py` (logs to `drift_metrics.json`)
+
+#### 6.2.C: Bias/Fairness Checks (✅)
+Ensures no bias in retrieval across NGS datasets:
+- Cross-protocol comparison (TruSight, TruSeq, Nextera)
+- Dataset parity checks (underrepresented protocols)
+- Version bias detection (v1 vs v2)
+- **File**: `tests/test_bias.py` (11 test cases)
+
+---
+
+## 📊 Phase 7: Observability & Monitoring (🔶 IN PROGRESS)
+
+Real-time metrics and dashboards for RAG pipeline health monitoring.
+
+### 7.1 Observability Module
+
+**Metrics Tracking:**
+- **Retrieval metrics**: Precision@k, Recall@k, MRR, NDCG
+- **Latency tracking**: Embedding time, search time, end-to-end query latency
+- **Chunk quality**: Average chunk size, overlap percentage, table vs. text ratio
+
+**Components:**
+- ✅ **`src/observability/metrics.py`** — SQLite-based metrics collector
+  - `MetricsCollector` class for logging retrieval, embedding, system metrics
+  - `LatencyTimer` context manager for timing operations
+  - Query methods: `get_retrieval_summary(days)`, `get_strategy_comparison()`
+- ✅ **`src/observability/dashboard.py`** — Streamlit dashboard
+  - KPI cards (total queries, accuracy, latency, distance)
+  - Time-series charts for accuracy trends
+  - Latency distribution histogram
+  - Strategy comparison bar charts
+  - Raw data explorer
+- ✅ **Integration**: Metrics collection integrated into:
+  - `scripts/drift_monitor.py` — logs retrieval + embedding metrics
+  - `scripts/test_retrieval_accuracy.py` — logs retrieval metrics + latency
+
+**Launch the dashboard:**
+```bash
+streamlit run src/observability/dashboard.py
+```
+
+**Query metrics database directly:**
+```bash
+sqlite3 observability/metrics.db "SELECT * FROM retrieval_metrics LIMIT 5;"
+```
+
+### 7.2 Bias/Drift Detection Module (⏳ PENDING)
+- Automated weekly drift checks (`scripts/weekly_check.py`)
+- Stakeholder dashboard ("RAG Health Score")
+- Markdown reports with drift alerts and bias findings
+
+---
+
+## 📜 Phase 3: Enhanced Multi-Modal Chunking
 
 The pipeline supports multiple chunking strategies for NGS-specific content:
 
