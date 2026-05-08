@@ -30,6 +30,7 @@ from src.ingestion import chunk_document_with_strategy, ChunkingStrategy
 from src.ingestion.pdf_parser import extract_pages
 from src.embeddings.embedder import OllamaEmbedder
 from src.retrieval.vector_store import VectorStore
+from src.observability import MetricsCollector
 
 # Default reference texts for embedding drift checks (stable NGS terms)
 DEFAULT_REFERENCE_TEXTS = [
@@ -103,8 +104,9 @@ def run_retrieval_test(
     questions_path: str,
     strategy: str = "basic",
     hybrid: bool = False,
-    embedder_model: str = "haybu/mxbai-embed-large:latest",
+    embedder_model: str = "haybu/mxbai-embed-large-latest:latest",
     ollama_host: str = "http://localhost:11434",
+    metrics_collector: object = None,
 ) -> Dict[str, Any]:
     """Run retrieval accuracy test (reused logic from test_retrieval_accuracy.py)."""
     # Load questions
@@ -166,12 +168,15 @@ def run_retrieval_test(
         if not query_emb:
             continue
 
+        # Time the search
+        start_time = time.time()
         hits = vector_store.search(
             query_embedding=query_emb,
             top_k=5,
             hybrid=hybrid,
             query_text=question if hybrid else None,
         )
+        latency_ms = int((time.time() - start_time) * 1000)
 
         if not hits:
             continue
@@ -179,14 +184,32 @@ def run_retrieval_test(
         retrieved_pages = [meta.get("page", 0) for _, meta, _ in hits]
         distances = [dist for _, _, dist in hits]
 
+        exact_match = False
+        in_top_k = False
+
         if expected_page is not None:
-            page_match = expected_page in retrieved_pages
+            exact_match = expected_page in retrieved_pages
             in_top_k = any(abs(expected_page - p) <= 2 for p in retrieved_pages)
 
-            if page_match:
+            if exact_match:
                 page_match_count += 1
             elif in_top_k:
                 page_in_top_k_count += 1
+
+        # Log to metrics collector
+        if metrics_collector:
+            metrics_collector.log_retrieval_metrics(
+                query=question,
+                strategy=strategy,
+                hybrid=hybrid,
+                exact_match=exact_match,
+                in_top_k=in_top_k,
+                distance=distances[0] if distances else 0.0,
+                latency_ms=latency_ms,
+                num_results=len(hits),
+                expected_page=expected_page,
+                retrieved_pages=retrieved_pages,
+            )
 
         for dist in distances:
             distance_sum += dist
@@ -222,6 +245,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Initialize metrics collector
+    metrics_collector = MetricsCollector()
+
     # Load reference texts
     if args.reference_texts and os.path.exists(args.reference_texts):
         with open(args.reference_texts, 'r') as f:
@@ -236,8 +262,20 @@ def main():
     # Initialize embedder
     embedder = OllamaEmbedder(host=args.ollama_host, model=args.model)
 
-    # Compute embedding drift
+    # Compute embedding drift + log metrics
     print("Computing embedding drift for reference texts...")
+    for text in reference_texts:
+        start_time = time.time()
+        emb = embedder.embed(text)
+        latency_ms = int((time.time() - start_time) * 1000)
+        if emb:
+            metrics_collector.log_embedding_metrics(
+                model=args.model,
+                text_length=len(text),
+                embedding_dim=len(emb),
+                latency_ms=latency_ms,
+            )
+
     embedding_drift = compute_embedding_drift(embedder, reference_texts, previous_embeddings)
 
     # Run retrieval test if PDF exists
@@ -252,6 +290,7 @@ def main():
                 hybrid=args.hybrid,
                 embedder_model=args.model,
                 ollama_host=args.ollama_host,
+                metrics_collector=metrics_collector,
             )
         except Exception as e:
             print(f"⚠️ Retrieval test failed: {e}")

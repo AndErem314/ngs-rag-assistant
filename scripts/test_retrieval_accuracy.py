@@ -22,6 +22,7 @@ import argparse
 import json
 import sys
 import os
+import time
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -30,6 +31,7 @@ from src.ingestion import chunk_document_with_strategy, ChunkingStrategy
 from src.ingestion.pdf_parser import extract_pages
 from src.embeddings.embedder import OllamaEmbedder
 from src.retrieval.vector_store import VectorStore
+from src.observability import MetricsCollector
 
 
 def test_retrieval_accuracy(
@@ -40,7 +42,8 @@ def test_retrieval_accuracy(
     top_k: int = 5,
     max_distance: float = 0.5,
     ollama_host: str = "http://localhost:11434",
-    embedder_model: str = "haybu/mxbai-embed-large:latest",
+    embedder_model: str = "haybu/mxbai-embed-large-latest:latest",
+    metrics_collector: object = None,
 ):
     """
     Run retrieval accuracy test against validation question set.
@@ -178,7 +181,8 @@ def test_retrieval_accuracy(
             print(f"    ✗ Error embedding query: {e}")
             continue
 
-        # Search
+        # Search with timing
+        start_time = time.time()
         try:
             hits = vector_store.search(
                 query_embedding=query_emb,
@@ -190,6 +194,7 @@ def test_retrieval_accuracy(
         except Exception as e:
             print(f"    ✗ Error searching: {e}")
             continue
+        latency_ms = int((time.time() - start_time) * 1000)
 
         if not hits:
             print(f"    ✗ No results found")
@@ -235,6 +240,21 @@ def test_retrieval_accuracy(
         for dist in distances:
             distance_sum += dist
             distance_count += 1
+
+        # Log to metrics collector
+        if metrics_collector:
+            metrics_collector.log_retrieval_metrics(
+                query=question,
+                strategy=strategy,
+                hybrid=hybrid,
+                exact_match=page_match,
+                in_top_k=in_top_k,
+                distance=distances[0] if distances else 0.0,
+                latency_ms=latency_ms,
+                num_results=len(hits),
+                expected_page=expected_page,
+                retrieved_pages=retrieved_pages,
+            )
 
         results.append({
             "question": question,
@@ -308,6 +328,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Initialize metrics collector
+    metrics_collector = MetricsCollector()
+
     # Check if PDF exists
     if not os.path.exists(args.pdf):
         print(f"Error: PDF not found: {args.pdf}")
@@ -328,6 +351,7 @@ if __name__ == "__main__":
         max_distance=args.max_distance,
         ollama_host=args.ollama_host,
         embedder_model=args.model,
+        metrics_collector=metrics_collector,
     )
 
     if metrics:
