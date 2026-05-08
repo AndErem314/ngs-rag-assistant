@@ -4,6 +4,7 @@ from .chunker import (
     chunk_document_table_aware,
     chunk_document_semantic,
     chunk_document_keyword_anchored,
+    chunk_document_with_strategy,
     ChunkingStrategy
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "chunk_document_table_aware",
     "chunk_document_semantic",
     "chunk_document_keyword_anchored",
+    "chunk_document_with_strategy",
     "ChunkingStrategy",
 ]
