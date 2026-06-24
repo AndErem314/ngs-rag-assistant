@@ -14,6 +14,12 @@ build/
 data/
 chroma_db/
 *.db
+*.sqlite3
+
+# Test artifacts
+chroma_drift_temp/
+chroma_test_*/
+drift_metrics.json
 
 # Environment variables
 .env
