@@ -23,12 +23,12 @@ class TestOllamaEmbedderInit:
         with patch('src.embeddings.embedder.ollama.Client') as mock_client:
             embedder = OllamaEmbedder()
             assert embedder.model == "haybu/mxbai-embed-large:latest"
-            mock_client.assert_called_once_with(base_url="http://localhost:11434")
+            mock_client.assert_called_once_with(host="http://localhost:11434")
 
     def test_custom_host_initialization(self):
         with patch('src.embeddings.embedder.ollama.Client') as mock_client:
             embedder = OllamaEmbedder(host="http://192.168.1.100:11434")
-            mock_client.assert_called_once_with(base_url="http://192.168.1.100:11434")
+            mock_client.assert_called_once_with(host="http://192.168.1.100:11434")
 
     def test_custom_model_initialization(self):
         with patch('src.embeddings.embedder.ollama.Client'):
