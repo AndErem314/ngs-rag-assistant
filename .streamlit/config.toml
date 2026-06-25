@@ -1,0 +1,4 @@
+[server]
+# Disable module inspection entirely — avoids spurious torchvision errors
+# from transformers' optional vision modules. Manual browser refresh (r) still works.
+fileWatcherType = "none"
