@@ -153,16 +153,18 @@ For each of 7 predefined questions (see report_builder.py):
 Final Markdown report displayed + available for download
 ```
 
-The 8 predefined report questions are:
+The 10 predefined report questions are:
 
-1. What is the minimum DNA/RNA input amount?
-2. What are the recommended shearing settings for the Covaris instruments?
-3. List all reagents and their storage temperatures from the kit boxes.
-4. How many cycles are used in the index PCR?
-5. What are the steps in the library preparation workflow?
-6. What are the quality control criteria for DNA and RNA samples?
-7. How many library cleanup steps are included in the protocol?
-8. How many PCR amplification steps are included in the protocol?
+1. What is the minimum DNA input amount?
+2. What is the minimum RNA input amount?
+3. What is the minimum DNA and/or RNA input amount?
+4. What are the recommended shearing settings for the Covaris instruments?
+5. List all reagents and their storage temperatures from the kit boxes.
+6. How many cycles are used in the index PCR?
+7. What are the steps in the library preparation workflow?
+8. What are the quality control criteria for DNA and RNA samples?
+9. How many library cleanup steps are included in the protocol?
+10. How many PCR amplification steps are included in the protocol?
 
 ---
 

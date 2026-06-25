@@ -6,7 +6,9 @@ from src.generation.llm_client import OllamaGenerator
 
 # Predefined questions for the report (customise as needed)
 REPORT_QUESTIONS = [
-    "What is the minimum DNA/RNA input amount?",
+    "What is the minimum DNA input amount?",
+    "What is the minimum RNA input amount?",
+    "What is the minimum DNA and/or RNA input amount?",
     "What are the recommended shearing settings for the Covaris instruments?",
     "List all reagents and their storage temperatures from the kit boxes.",
     "How many cycles are used in the index PCR?",
