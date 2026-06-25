@@ -12,7 +12,8 @@ REPORT_QUESTIONS = [
     "How many cycles are used in the index PCR?",
     "What are the steps in the library preparation workflow?",
     "What are the quality control criteria for DNA and RNA samples?",
-    "What are the important safety precautions or handling notes?"
+    "How many library cleanup steps are included in the protocol?",
+    "How many PCR amplification steps are included in the protocol?"
 ]
 
 def generate_report(
