@@ -323,7 +323,7 @@ if __name__ == "__main__":
                         help="Maximum cosine distance for results")
     parser.add_argument("--ollama-host", type=str, default="http://localhost:11434",
                         help="Ollama server URL")
-    parser.add_argument("--model", type=str, default="haybu/mxbai-embed-large:latest",
+    parser.add_argument("--model", type=str, default="haybu/mxbai-embed-large-latest:latest",
                         help="Ollama embedding model")
 
     args = parser.parse_args()

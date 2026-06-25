@@ -7,7 +7,7 @@ Everything runs **fully locally** via Ollama — no API keys, no internet connec
 
 Built with:
 
-- **Ollama** — local embeddings (`haybu/mxbai-embed-large:latest`) and generation (`llama3.1:8b`)
+- **Ollama** — local embeddings (`haybu/mxbai-embed-large-latest:latest`) and generation (`llama3.1:8b`)
 - **Streamlit** — interactive web UI
 - **ChromaDB** — persistent vector storage with content-hash deduplication
 - **PDFPlumber** — page-by-page text extraction from PDFs
@@ -108,7 +108,7 @@ chunker.py          — text is split into overlapping chunks
    │
    ▼
 embedder.py         — each chunk is sent to Ollama's embeddings endpoint
-                       using the haybu/mxbai-embed-large:latest model;
+                       using the haybu/mxbai-embed-large-latest:latest model;
                        returns a float vector per chunk
    │
    ▼
@@ -186,7 +186,7 @@ Download from [ollama.com](https://ollama.com/) and install. Then pull both requ
 
 ```bash
 # Embedding model
-ollama pull haybu/mxbai-embed-large:latest
+ollama pull haybu/mxbai-embed-large-latest:latest
 
 # Generation model
 ollama pull llama3.1:8b
@@ -233,7 +233,7 @@ Edit `.env` if needed (all values have sensible defaults):
 ```env
 # Ollama server (local by default)
 OLLAMA_HOST=http://localhost:11434
-EMBEDDING_MODEL=haybu/mxbai-embed-large:latest
+EMBEDDING_MODEL=haybu/mxbai-embed-large-latest:latest
 LLM_MODEL=llama3.1:8b
 
 # Only needed for the validation question-generation script (not the main app)
@@ -332,7 +332,7 @@ What are the safety precautions when handling the enzymatic reagents?
 
 | Model | Purpose | RAM (Q4) | Notes |
 |-------|---------|----------|-------|
-| `haybu/mxbai-embed-large:latest` | Embeddings | ~1 GB | Top BEIR benchmark performance; 100+ languages; supports dimension cropping to 256/512 for memory efficiency |
+| `haybu/mxbai-embed-large-latest:latest` | Embeddings | ~1 GB | Top BEIR benchmark performance; 100+ languages; supports dimension cropping to 256/512 for memory efficiency |
 | `llama3.1:8b` | Generation | ~6–8 GB | Best balance of speed and accuracy; strong instruction-following; recommended default |
 | `phi3:mini` | Generation (alt) | ~3–4 GB | 3.8B parameters; use if RAM is limited; slightly lower answer quality |
 
@@ -616,7 +616,7 @@ Track your results in a spreadsheet to compare performance across different `top
 |---------|-------------|-----|
 | "Cannot reach Ollama" | `ollama serve` not running | Run `ollama serve` in a terminal |
 | "Cannot reach Ollama" | Wrong host | Update `OLLAMA_HOST` in `.env` or the sidebar field |
-| All embeddings failed | Model not pulled | Run `ollama pull haybu/mxbai-embed-large:latest` |
+| All embeddings failed | Model not pulled | Run `ollama pull haybu/mxbai-embed-large-latest:latest` |
 | Empty answers / "cannot find information" | Max distance too strict | Raise the Max distance slider in the sidebar |
 | Slow ingestion | Large PDF or CPU-only Ollama | Normal — embedding 500-chunk PDFs takes ~1–2 min on CPU |
 | Duplicate sources in sidebar | — | Fixed in current version via set-based deduplication on re-ingest |

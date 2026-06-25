@@ -22,7 +22,7 @@ class TestOllamaEmbedderInit:
     def test_default_initialization(self):
         with patch('src.embeddings.embedder.ollama.Client') as mock_client:
             embedder = OllamaEmbedder()
-            assert embedder.model == "haybu/mxbai-embed-large:latest"
+            assert embedder.model == "haybu/mxbai-embed-large-latest:latest"
             mock_client.assert_called_once_with(host="http://localhost:11434")
 
     def test_custom_host_initialization(self):
@@ -53,7 +53,7 @@ class TestEmbedMethod:
             
             assert result == [0.1, 0.2, 0.3, 0.4, 0.5]
             mock_client.embeddings.assert_called_once_with(
-                model="haybu/mxbai-embed-large:latest",
+                model="haybu/mxbai-embed-large-latest:latest",
                 prompt="test text"
             )
 
@@ -78,7 +78,7 @@ class TestEmbedMethod:
             
             assert len(result) == 1024
             mock_client.embeddings.assert_called_once_with(
-                model="haybu/mxbai-embed-large:latest",
+                model="haybu/mxbai-embed-large-latest:latest",
                 prompt=ngs_text
             )
 

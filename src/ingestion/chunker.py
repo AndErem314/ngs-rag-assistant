@@ -159,7 +159,7 @@ def chunk_document_table_aware(
 def chunk_document_semantic(
     pages: List[Tuple[int, str]],
     source_filename: str,
-    embedder_model: str = "haybu/mxbai-embed-large:latest",
+    embedder_model: str = "haybu/mxbai-embed-large-latest:latest",
     chunk_size: int = 500,
     overlap: int = 50
 ) -> List[Dict]:
@@ -366,7 +366,7 @@ def chunk_document_with_strategy(
             raise ValueError("pdf_path is required for TABLE_AWARE strategy")
         return chunk_document_table_aware(pdf_path, source_filename, chunk_size, overlap)
     elif strategy == ChunkingStrategy.SEMANTIC:
-        embedder_model = kwargs.get("embedder_model", "haybu/mxbai-embed-large:latest")
+        embedder_model = kwargs.get("embedder_model", "haybu/mxbai-embed-large-latest:latest")
         return chunk_document_semantic(pages, source_filename, embedder_model, chunk_size, overlap)
     elif strategy == ChunkingStrategy.KEYWORD_ANCHORED:
         keywords = kwargs.get("keywords", None)
