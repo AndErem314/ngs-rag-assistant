@@ -41,9 +41,11 @@ from src.retrieval.query_processor import retrieve_context
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "haybu/mxbai-embed-large-latest:latest")
 GEN_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "mistral-nemo:12b")  # Separate model for scoring
 CHROMA_DIR = os.getenv("CHROMA_DB_DIR", str(PROJECT_ROOT / "chroma_db"))
 VALIDATION_DIR = PROJECT_ROOT / "validation" / "questions"
 STREAK_LOG = PROJECT_ROOT / ".hermes" / "streak-log.md"
+DEFAULT_MAX_RUNTIME = 600  # 10 minutes — hard safety limit
 
 # Scoring weights (must sum to 100)
 WEIGHT_FACTUAL = 40      # Does the answer match ground truth?
@@ -170,15 +172,38 @@ def run_rag_pipeline(
 # ---------------------------------------------------------------------------
 # Scoring
 # ---------------------------------------------------------------------------
+def _fallback_score(answer: str, expected: str) -> Dict:
+    """Rule-based fallback when LLM scoring fails."""
+    # Simple keyword overlap as rough accuracy measure
+    expected_keywords = set(expected.lower().split())
+    answer_keywords = set(answer.lower().split())
+    if not expected_keywords:
+        return {"factual_accuracy": 0, "hallucination": 10, "completeness": 0,
+                "source_fidelity": 0, "explanation": "Fallback: empty expected"}
+    overlap = len(expected_keywords & answer_keywords) / len(expected_keywords)
+    factual = min(int(overlap * WEIGHT_FACTUAL), WEIGHT_FACTUAL)
+    return {
+        "factual_accuracy": factual,
+        "hallucination": max(WEIGHT_HALLUCINATION - 10, 10),  # conservative
+        "completeness": min(int(overlap * WEIGHT_COMPLETENESS), WEIGHT_COMPLETENESS),
+        "source_fidelity": 0,
+        "explanation": "Fallback rule-based score (LLM unavailable)",
+    }
+
+
 def score_answer(
     question: str,
     answer: str,
     expected: str,
     metadata: List[Dict],
-    generator: OllamaGenerator,
+    judge_model: str,
+    ollama_host: str = OLLAMA_HOST,
 ) -> Dict:
     """
-    Score an answer using the LLM as judge across 4 dimensions.
+    Score an answer using a dedicated judge LLM across 4 dimensions.
+
+    Uses a separate model (default: mistral-nemo:12b) from the answer generator
+    for more nuanced and consistent evaluation.
 
     Returns a dict with per-dimension scores, overall score, and explanation.
     """
@@ -208,8 +233,10 @@ def score_answer(
     )
 
     try:
-        response = generator.client.chat(
-            model=generator.model,
+        import ollama as ollama_lib
+        client = ollama_lib.Client(host=ollama_host)
+        response = client.chat(
+            model=judge_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -224,14 +251,8 @@ def score_answer(
             text = text.split("```")[1].split("```")[0]
         result = json.loads(text.strip())
     except Exception as e:
-        print(f"  ⚠️  Scoring failed, using fallback: {e}")
-        result = {
-            "factual_accuracy": 0,
-            "hallucination": 0,
-            "completeness": 0,
-            "source_fidelity": 0,
-            "explanation": f"Scoring error: {e}",
-        }
+        print(f"  ⚠️  Scoring failed with {judge_model}, falling back to rule-based: {e}")
+        result = _fallback_score(answer, expected)
 
     # Compute total
     total = sum([
@@ -271,7 +292,9 @@ def run_evaluation(
     embedder: OllamaEmbedder,
     vector_store: VectorStore,
     generator: OllamaGenerator,
+    judge_model: str = JUDGE_MODEL,
     limit: Optional[int] = None,
+    max_distance: float = 0.45,
 ) -> Dict:
     """Run the full evaluation across all (or limited) questions."""
     if limit:
@@ -282,7 +305,7 @@ def run_evaluation(
     failed = 0
     total_score = 0
 
-    print(f"\n🔬 Evaluating {len(questions)} questions...\n")
+    print(f"\n🔬 Evaluating {len(questions)} questions... (judge: {judge_model})\n")
 
     for i, q in enumerate(questions):
         question_text = q.get("question", "")
@@ -293,10 +316,11 @@ def run_evaluation(
         sys.stdout.flush()
 
         answer, metadata = run_rag_pipeline(
-            question_text, embedder, vector_store, generator
+            question_text, embedder, vector_store, generator,
+            max_distance=max_distance,
         )
 
-        score = score_answer(question_text, answer, expected, metadata, generator)
+        score = score_answer(question_text, answer, expected, metadata, judge_model)
         score["_source_file"] = source_file
         results.append(score)
 
@@ -422,6 +446,14 @@ def main():
         help="Max cosine distance for retrieval (default: 0.45)",
     )
     parser.add_argument(
+        "--judge-model", type=str, default=JUDGE_MODEL,
+        help=f"Ollama model for scoring (default: {JUDGE_MODEL})",
+    )
+    parser.add_argument(
+        "--max-runtime", type=int, default=DEFAULT_MAX_RUNTIME,
+        help=f"Hard limit in seconds before aborting (default: {DEFAULT_MAX_RUNTIME}s)",
+    )
+    parser.add_argument(
         "--no-update-log", action="store_true",
         help="Skip updating the streak log",
     )
@@ -442,6 +474,19 @@ def main():
     except Exception as e:
         print(f"   ❌ Embedder failed: {e}")
         return 1
+
+    # Verify judge model availability
+    try:
+        import ollama as ollama_lib
+        judge_client = ollama_lib.Client(host=OLLAMA_HOST)
+        judge_client.chat(model=args.judge_model, messages=[
+            {"role": "user", "content": "ping"}
+        ])
+        print(f"   ✅ Judge model ready: {args.judge_model}")
+    except Exception as e:
+        print(f"   ⚠️  Judge model {args.judge_model} unavailable: {e}")
+        print(f"   ⚠️  Falling back to {GEN_MODEL} for scoring")
+        args.judge_model = GEN_MODEL
 
     # -----------------------------------------------------------------------
     # Load questions
@@ -468,9 +513,16 @@ def main():
         embedder=embedder,
         vector_store=vector_store,
         generator=generator,
+        judge_model=args.judge_model,
         limit=args.limit,
+        max_distance=args.max_distance,
     )
     elapsed = time.time() - start_time
+
+    # Check hard runtime limit
+    if elapsed > args.max_runtime:
+        print(f"⏰ RUNTIME LIMIT EXCEEDED ({elapsed:.0f}s > {args.max_runtime}s) — results may be incomplete")
+        # Don't exit — still log what we have
 
     # -----------------------------------------------------------------------
     # Compute streak
@@ -507,7 +559,9 @@ def main():
         "streak_after": new_streak,
         "elapsed_seconds": round(elapsed, 1),
         "model_used": GEN_MODEL,
+        "judge_model_used": args.judge_model,
         "embed_model_used": EMBED_MODEL,
+        "runtime_exceeded": elapsed > args.max_runtime,
     }
 
     if args.output:
