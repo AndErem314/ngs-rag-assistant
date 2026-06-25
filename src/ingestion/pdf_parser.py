@@ -22,7 +22,8 @@ def table_to_markdown(table: List[List[str]]) -> str:
     for row in table:
         if len(row) < num_cols:
             row = row + [""] * (num_cols - len(row))
-        norm_rows.append(row)
+        # Coerce all cells to strings (pdfplumber returns None for empty cells)
+        norm_rows.append([str(cell) if cell is not None else "" for cell in row])
 
     # Build header and separator
     header = "| " + " | ".join(norm_rows[0]) + " |"
