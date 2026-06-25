@@ -14,7 +14,7 @@ class PgvectorStore:
     def __init__(
         self,
         db_url: str = None,
-        collection_name: str = "documents",
+        collection_name: str = "ngs_docs",
         embedding_dim: int = 1024  # Default for mxbai-embed-large-latest
     ):
         self.collection_name = collection_name

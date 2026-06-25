@@ -12,7 +12,7 @@ except ImportError:
     BM25Okapi = None
 
 class VectorStore:
-    def __init__(self, collection_name: str = "documents", persist_directory: str = "./chroma_db"):
+    def __init__(self, collection_name: str = "ngs_docs", persist_directory: str = "./chroma_db"):
         self.client = chromadb.PersistentClient(
             path=persist_directory,
             settings=Settings(anonymized_telemetry=False),
