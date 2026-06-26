@@ -76,6 +76,8 @@ class OllamaGenerator:
             "You are an expert assistant for NGS sample preparation. "
             "Answer questions using ONLY the provided context. "
             "Synthesize all relevant chunks — even partial matches — into a complete answer. "
+            "Include ALL specific numeric values, volumes, temperatures, times, and procedural "
+            "details present in the context — do not summarize multi-step procedures into one sentence. "
             "If the context contains related information but not the exact answer, "
             "provide what IS there and note what specific detail is missing. "
             "Never use canned phrases like 'I cannot find that information.' "
