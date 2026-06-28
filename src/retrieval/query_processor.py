@@ -66,9 +66,9 @@ def retrieve_context(
     embedder: OllamaEmbedder,
     vector_store: VectorStore,
     source_filter: Optional[List[str]] = None,
-    top_k: int = 15,
-    max_distance: Optional[float] = 0.35,
-    hybrid: bool = True,
+    top_k: int = 5,
+    max_distance: Optional[float] = 1.0,
+    hybrid: bool = False,
 ) -> Tuple[str, List[Dict]]:
     """
     Retrieve context from the vector store for a given question.
@@ -97,8 +97,8 @@ def retrieve_context(
                        Chunks with distance > max_distance are dropped.
                        Set to None to disable filtering and accept all top_k
                        results regardless of quality.
-                       Defaults to 0.35 — tuned for the embedding space of
-                       haybu/mxbai-embed-large-latest on NGS protocol PDFs.
+                       Defaults to 1.0 — a permissive upper bound. Tighten to
+                       ~0.5–0.7 once the embedding space is well-characterized.
         hybrid:        If True, combine vector search with BM25 keyword search
                        for better recall on protocol-specific terms (volumes,
                        temperatures, named reagents).
