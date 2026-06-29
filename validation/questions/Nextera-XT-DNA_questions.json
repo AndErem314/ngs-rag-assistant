@@ -40,7 +40,7 @@
     "source_page": 10
   },
   {
-    "question": "How should Illumina Purification Beads (IPB) be resuspended before use?",
+    "question": "In the Nextera XT protocol, how should Illumina Purification Beads (IPB) be resuspended before use?",
     "expected_answer": "Manually mix by inversion for at least 2 minutes, rotating the bottle 90 degrees every 30 seconds.",
     "source_page": 10
   },
