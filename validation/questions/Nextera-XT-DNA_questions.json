@@ -65,7 +65,7 @@
     "source_page": 13
   },
   {
-    "question": "If using index adapter tubes, what volume of i7 adapter is added per sample?",
+    "question": "In the Nextera XT protocol, if using index adapter tubes, what volume of i7 adapter is added per sample?",
     "expected_answer": "5 µl.",
     "source_page": 14
   },
