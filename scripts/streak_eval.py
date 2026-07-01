@@ -152,14 +152,16 @@ def run_rag_pipeline(
     vector_store: VectorStore,
     generator: OllamaGenerator,
     max_distance: float = 0.45,
+hybrid: bool = True,
 ) -> Tuple[str, List[Dict]]:
     """Run a question through the full RAG pipeline and return answer + metadata."""
     context, metadata = retrieve_context(
         question=question,
         embedder=embedder,
         vector_store=vector_store,
-        top_k=5,
+        top_k=10,
         max_distance=max_distance,
+        hybrid=hybrid,
     )
 
     if not context:
@@ -295,6 +297,7 @@ def run_evaluation(
     judge_model: str = JUDGE_MODEL,
     limit: Optional[int] = None,
     max_distance: float = 0.45,
+    hybrid: bool = True,
 ) -> Dict:
     """Run the full evaluation across all (or limited) questions."""
     if limit:
@@ -318,6 +321,7 @@ def run_evaluation(
         answer, metadata = run_rag_pipeline(
             question_text, embedder, vector_store, generator,
             max_distance=max_distance,
+            hybrid=hybrid,
         )
 
         score = score_answer(question_text, answer, expected, metadata, judge_model)
