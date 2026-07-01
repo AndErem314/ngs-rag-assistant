@@ -5,6 +5,12 @@ Tier 2 fixes create Kanban review cards. Tier 3 issues are reported without code
 
 | Run ID | Date | Passed | Streak | Changes | Decision | Avg Score |
 |------|------|--------|--------|---------|----------|------------|
+| 20260701-0304 | 01 Jul 2026 | 12/20 | 0 | In the Nextera XT protocol, what bead-to-supernatant ratio i..., What is the incubation temperature and time for the tagmenta..., What volume of Neutralize Tagment Buffer (NT) is added after... | — | 67.9% |
+
+| 20260630-0304 | 30 Jun 2026 | 11/20 | 0 | In the Nextera XT protocol, what bead-to-supernatant ratio i..., What is the incubation temperature and time for the tagmenta..., What volume of Neutralize Tagment Buffer (NT) is added after... | — | 63.4% |
+
+| 20260629-0304 | 29 Jun 2026 | 11/20 | 0 | In the Nextera XT protocol, what bead-to-supernatant ratio i..., How should Illumina Purification Beads (IPB) be resuspended ..., What volume of Neutralize Tagment Buffer (NT) is added after... | — | 61.4% |
+
 | (baseline) | — | — | 0 | Initial setup | — | — |
 
 ---

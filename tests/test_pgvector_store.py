@@ -60,7 +60,7 @@ def sample_chunks():
 
 @pytest.fixture(scope="module")
 def sample_embeddings():
-    # Dummy 1024-dimensional embeddings (matching mxbai-embed-large-latest)
+    # Dummy 1024-dimensional embeddings (matching qwen3-embedding:0.6b)
     return [
         [0.1] * 1024,
         [0.2] * 1024,

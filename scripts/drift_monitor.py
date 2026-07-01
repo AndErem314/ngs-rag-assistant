@@ -104,7 +104,7 @@ def run_retrieval_test(
     questions_path: str,
     strategy: str = "basic",
     hybrid: bool = False,
-    embedder_model: str = "haybu/mxbai-embed-large-latest:latest",
+    embedder_model: str = "qwen3-embedding:0.6b",
     ollama_host: str = "http://localhost:11434",
     metrics_collector: object = None,
 ) -> Dict[str, Any]:
@@ -240,7 +240,7 @@ def main():
     parser.add_argument("--output", type=str, default="drift_metrics.json")
     parser.add_argument("--reference-texts", type=str, default=None,
                         help="JSON file with reference texts for embedding drift")
-    parser.add_argument("--model", type=str, default="haybu/mxbai-embed-large-latest:latest")
+    parser.add_argument("--model", type=str, default="qwen3-embedding:0.6b")
     parser.add_argument("--ollama-host", type=str, default="http://localhost:11434")
 
     args = parser.parse_args()

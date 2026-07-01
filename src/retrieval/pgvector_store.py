@@ -15,7 +15,7 @@ class PgvectorStore:
         self,
         db_url: str = None,
         collection_name: str = "ngs_docs",
-        embedding_dim: int = 1024  # Default for mxbai-embed-large-latest
+        embedding_dim: int = 1024  # Default for qwen3-embedding:0.6b
     ):
         self.collection_name = collection_name
         self.embedding_dim = embedding_dim

@@ -42,7 +42,7 @@ def test_retrieval_accuracy(
     top_k: int = 5,
     max_distance: float = 0.5,
     ollama_host: str = "http://localhost:11434",
-    embedder_model: str = "haybu/mxbai-embed-large-latest:latest",
+    embedder_model: str = "qwen3-embedding:0.6b",
     metrics_collector: object = None,
 ):
     """
@@ -323,7 +323,7 @@ if __name__ == "__main__":
                         help="Maximum cosine distance for results")
     parser.add_argument("--ollama-host", type=str, default="http://localhost:11434",
                         help="Ollama server URL")
-    parser.add_argument("--model", type=str, default="haybu/mxbai-embed-large-latest:latest",
+    parser.add_argument("--model", type=str, default="qwen3-embedding:0.6b",
                         help="Ollama embedding model")
 
     args = parser.parse_args()

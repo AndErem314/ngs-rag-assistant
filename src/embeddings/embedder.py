@@ -10,11 +10,11 @@ class OllamaEmbedder:
     to convert text into vector embeddings.
 
     Attributes:
-        model (str): Name of the embedding model (default "haybu/mxbai-embed-large-latest:latest").
+        model (str): Name of the embedding model (default "qwen3-embedding:0.6b").
         client (ollama.Client): Ollama client bound to the specified host.
     """
 
-    def __init__(self, host: str = "http://localhost:11434", model: str = "haybu/mxbai-embed-large-latest:latest"):
+    def __init__(self, host: str = "http://localhost:11434", model: str = "qwen3-embedding:0.6b"):
         """
         Initialize the embedder.
 
@@ -38,19 +38,18 @@ class OllamaEmbedder:
             Returns an empty list if an error occurs.
         """
         try:
-            response = self.client.embeddings(model=self.model, prompt=text)
-            return response["embedding"]
+            response = self.client.embed(model=self.model, input=text)
+            return response["embeddings"][0]
         except Exception as e:
             print(f"Error embedding text: {e}")
             return []
 
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """
-        Generate embeddings for a list of texts sequentially.
+        Generate embeddings for a list of texts using native Ollama batching.
 
-        The Ollama client does not support native batching, so texts are
-        processed one at a time. If an embedding fails for a given text,
-        an empty list is stored at that position.
+        The Ollama /api/embed endpoint supports batched input natively,
+        so all texts are sent in a single request for efficiency.
 
         Args:
             texts: List of input text strings.
@@ -58,7 +57,14 @@ class OllamaEmbedder:
         Returns:
             A list of embedding vectors in the same order as the input texts.
         """
-        return [self.embed(text) for text in texts]
+        if not texts:
+            return []
+        try:
+            response = self.client.embed(model=self.model, input=texts)
+            return response["embeddings"]
+        except Exception as e:
+            print(f"Error embedding batch: {e}")
+            return [[] for _ in texts]
 
 
 # ----------------------------------------------------------------------

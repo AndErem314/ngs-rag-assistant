@@ -39,7 +39,7 @@ class TestDatasetBias:
     def embedder(self):
         return OllamaEmbedder(
             host="http://localhost:11434",
-            model="haybu/mxbai-embed-large-latest:latest"
+            model="qwen3-embedding:0.6b"
         )
 
     def test_all_protocol_questions_exist(self):
@@ -79,7 +79,7 @@ class TestCrossProtocolComparison:
     def embedder(self):
         return OllamaEmbedder(
             host="http://localhost:11434",
-            model="haybu/mxbai-embed-large-latest:latest"
+            model="qwen3-embedding:0.6b"
         )
 
     @pytest.fixture
@@ -159,7 +159,7 @@ class TestRetrievalFairness:
     def embedder(self):
         return OllamaEmbedder(
             host="http://localhost:11434",
-            model="haybu/mxbai-embed-large-latest:latest"
+            model="qwen3-embedding:0.6b"
         )
 
     def test_query_length_fairness(self, embedder):

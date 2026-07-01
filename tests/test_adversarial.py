@@ -29,7 +29,7 @@ class TestAdversarialQueries:
         """Initialize Ollama embedder."""
         return OllamaEmbedder(
             host="http://localhost:11434",
-            model="haybu/mxbai-embed-large-latest:latest"
+            model="qwen3-embedding:0.6b"
         )
 
     @pytest.fixture
@@ -141,7 +141,7 @@ class TestRetrievalRobustness:
         """Set up a minimal pipeline with test data."""
         embedder = OllamaEmbedder(
             host="http://localhost:11434",
-            model="haybu/mxbai-embed-large-latest:latest"
+            model="qwen3-embedding:0.6b"
         )
         store = VectorStore(
             collection_name="test_robustness",
