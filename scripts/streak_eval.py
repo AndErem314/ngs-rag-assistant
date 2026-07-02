@@ -39,7 +39,7 @@ from src.retrieval.query_processor import retrieve_context
 # Configuration
 # ---------------------------------------------------------------------------
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "haybu/mxbai-embed-large-latest:latest")
 GEN_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "mistral-nemo:12b")  # Separate model for scoring
 CHROMA_DIR = os.getenv("CHROMA_DB_DIR", str(PROJECT_ROOT / "chroma_db"))
