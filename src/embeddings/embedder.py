@@ -14,7 +14,7 @@ class OllamaEmbedder:
         client (ollama.Client): Ollama client bound to the specified host.
     """
 
-    def __init__(self, host: str = "http://localhost:11434", model: str = "haybu/mxbai-embed-large-latest:latest"):
+    def __init__(self, host: str = "http://localhost:11434", model: str = "qwen3-embedding:0.6b"):
         """
         Initialize the embedder.
 
