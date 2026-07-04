@@ -151,7 +151,7 @@ def run_rag_pipeline(
     embedder: OllamaEmbedder,
     vector_store: VectorStore,
     generator: OllamaGenerator,
-    max_distance: float = 0.45,
+    max_distance: float = 0.65,
 hybrid: bool = True,
 ) -> Tuple[str, List[Dict]]:
     """Run a question through the full RAG pipeline and return answer + metadata."""
@@ -296,7 +296,7 @@ def run_evaluation(
     generator: OllamaGenerator,
     judge_model: str = JUDGE_MODEL,
     limit: Optional[int] = None,
-    max_distance: float = 0.45,
+    max_distance: float = 0.65,
     hybrid: bool = True,
 ) -> Dict:
     """Run the full evaluation across all (or limited) questions."""
@@ -446,7 +446,7 @@ def main():
         help="Number of AI-generated questions (default: 10)",
     )
     parser.add_argument(
-        "--max-distance", type=float, default=0.45,
+        "--max-distance", type=float, default=0.65,
         help="Max cosine distance for retrieval (default: 0.45)",
     )
     parser.add_argument(
