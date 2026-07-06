@@ -246,11 +246,26 @@ def score_answer(
             options={"temperature": 0.1},  # Low temp for consistent scoring
         )
         text = response["message"]["content"]
-        # Extract JSON
+        # Extract JSON — handle code blocks, trailing text, and multiple JSON objects
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0]
         elif "```" in text:
             text = text.split("```")[1].split("```")[0]
+        # Strip any text before the first { and after the matching }
+        text = text.strip()
+        if "{" in text:
+            start = text.index("{")
+            depth = 0
+            end = start
+            for i, ch in enumerate(text[start:], start):
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i + 1
+                        break
+            text = text[start:end]
         result = json.loads(text.strip())
     except Exception as e:
         print(f"  ⚠️  Scoring failed with {judge_model}, falling back to rule-based: {e}")
