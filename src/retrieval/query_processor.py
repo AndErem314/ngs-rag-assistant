@@ -67,7 +67,7 @@ def retrieve_context(
     vector_store: VectorStore,
     source_filter: Optional[List[str]] = None,
     top_k: int = 5,
-    max_distance: Optional[float] = 1.0,
+    max_distance: Optional[float] = 0.95,
     hybrid: bool = False,
 ) -> Tuple[str, List[Dict]]:
     """
@@ -97,8 +97,7 @@ def retrieve_context(
                        Chunks with distance > max_distance are dropped.
                        Set to None to disable filtering and accept all top_k
                        results regardless of quality.
-                       Defaults to 1.0 — a permissive upper bound. Tighten to
-                       ~0.5–0.7 once the embedding space is well-characterized.
+                       Defaults to 0.95 — the optimal threshold for bge-m3.
         hybrid:        If True, combine vector search with BM25 keyword search
                        for better recall on protocol-specific terms (volumes,
                        temperatures, named reagents).
