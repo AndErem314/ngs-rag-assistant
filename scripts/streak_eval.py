@@ -39,7 +39,7 @@ from src.retrieval.query_processor import retrieve_context
 # Configuration
 # ---------------------------------------------------------------------------
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3:latest")
 GEN_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "mistral-nemo:12b")  # Separate model for scoring
 CHROMA_DIR = os.getenv("CHROMA_DB_DIR", str(PROJECT_ROOT / "chroma_db"))
@@ -151,8 +151,8 @@ def run_rag_pipeline(
     embedder: OllamaEmbedder,
     vector_store: VectorStore,
     generator: OllamaGenerator,
-    max_distance: float = 0.65,
-hybrid: bool = True,
+    max_distance: float = 0.95,
+hybrid: bool = False,
 ) -> Tuple[str, List[Dict]]:
     """Run a question through the full RAG pipeline and return answer + metadata."""
     context, metadata = retrieve_context(
@@ -311,8 +311,8 @@ def run_evaluation(
     generator: OllamaGenerator,
     judge_model: str = JUDGE_MODEL,
     limit: Optional[int] = None,
-    max_distance: float = 0.65,
-    hybrid: bool = True,
+    max_distance: float = 0.95,
+    hybrid: bool = False,
 ) -> Dict:
     """Run the full evaluation across all (or limited) questions."""
     if limit:
@@ -461,8 +461,8 @@ def main():
         help="Number of AI-generated questions (default: 10)",
     )
     parser.add_argument(
-        "--max-distance", type=float, default=0.65,
-        help="Max cosine distance for retrieval (default: 0.45)",
+        "--max-distance", type=float, default=0.95,
+        help="Max cosine distance for retrieval (default: 0.95, bge-m3 scale)",
     )
     parser.add_argument(
         "--judge-model", type=str, default=JUDGE_MODEL,
